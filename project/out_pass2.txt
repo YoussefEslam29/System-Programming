@@ -1,0 +1,24 @@
+Location counter  Symbol   Instructions  Reference   Obj. code
+----------------  -------  ------------  ----------  --------------
+0000              COPY     START         0           No object code
+0000              FIRST    CLEAR         X           B410
+0002                       CLEAR         A           B400
+                           USE           DEFAULTB    No object code
+0000                       LDA           #0          010000
+0003                       LDB           #BASEVAL    692023
+0006                       BASE          BASEVAL     No object code
+0006                       LDA           ALPHA       03201A
+0009                       ADD           &C'EOF'     1B2013
+000C                       STA           BETA        0F2017
+000F                       LDA           @GAMMA      02201A
+0012                       +LDX          ALPHA       07100027
+0016                       ADD           &X'0F'      1B2009
+0019                       STCH          GAMMA,X     57A010
+001C                       RSUB                      4F0000
+                           USE           CDATA       No object code
+0000              ALPHA    WORD          5           000005
+0003              BETA     RESW          1           No object code
+0006              BASEVAL  WORD          4096        001000
+                           USE           CBLKS       No object code
+0000              GAMMA    RESB          5376        No object code
+1500                       END           FIRST       No object code

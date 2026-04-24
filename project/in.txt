@@ -1,0 +1,22 @@
+COPY    START   0
+FIRST   CLEAR   X
+        CLEAR   A
+        USE     DEFAULTB
+        LDA     #0
+        LDB     #BASEVAL
+        BASE    BASEVAL
+        LDA     ALPHA
+        ADD     &C'EOF'
+        STA     BETA
+        LDA     @GAMMA
+        +LDX    ALPHA
+        ADD     &X'0F'
+        STCH    GAMMA,X
+        RSUB
+        USE     CDATA
+ALPHA   WORD    5
+BETA    RESW    1
+BASEVAL WORD    4096
+        USE     CBLKS
+GAMMA   RESB    5376
+        END     FIRST
