@@ -1,0 +1,1569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pass 1 & Preprocessor — Line-by-Line Study Guide</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Sora:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --bg: #0D0F12;
+    --surface: #13161B;
+    --surface2: #1A1E26;
+    --border: #252A35;
+    --border2: #2E3545;
+    --text: #E2E8F0;
+    --muted: #6B7A99;
+    --accent: #5B8AF5;
+    --accent2: #7C5BF5;
+    --gold: #F5C842;
+    --teal: #2DD4BF;
+    --coral: #F87171;
+    --green: #4ADE80;
+    --orange: #FB923C;
+    --purple: #C084FC;
+
+    --f-body: 'Sora', sans-serif;
+    --f-mono: 'JetBrains Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--f-body);
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  /* ── Layout ── */
+  .shell {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    min-height: 100vh;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 1.5rem 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border2) transparent;
+  }
+  .sidebar-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0 1.25rem .75rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: .75rem;
+  }
+  .nav-file {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: .6rem 1.25rem .2rem;
+    margin-top: .5rem;
+  }
+  .nav-item {
+    display: block;
+    padding: .35rem 1.25rem .35rem 1.5rem;
+    font-size: 12.5px;
+    color: var(--muted);
+    text-decoration: none;
+    border-left: 2px solid transparent;
+    transition: color .15s, border-color .15s, background .15s;
+    cursor: pointer;
+    font-family: var(--f-body);
+    font-weight: 400;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .nav-item:hover { color: var(--text); background: var(--surface2); }
+  .nav-item.active { color: var(--accent); border-left-color: var(--accent); background: rgba(91,138,245,.07); }
+
+  /* ── Main content ── */
+  .main {
+    padding: 2rem 2.5rem 4rem;
+    max-width: 900px;
+  }
+
+  /* ── Hero ── */
+  .hero {
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .hero-eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: .5rem;
+  }
+  .hero-title {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: .6rem;
+    background: linear-gradient(135deg, var(--text) 40%, var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .hero-sub {
+    font-size: 14px;
+    color: var(--muted);
+    font-weight: 300;
+    max-width: 600px;
+  }
+
+  /* ── Section ── */
+  .section {
+    margin-bottom: 3rem;
+    scroll-margin-top: 1.5rem;
+  }
+  .section-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 20px;
+    border: 1px solid;
+    margin-bottom: .75rem;
+  }
+  .badge-pre  { background: rgba(124,91,245,.12); color: var(--accent2); border-color: rgba(124,91,245,.3); }
+  .badge-p1   { background: rgba(91,138,245,.12); color: var(--accent);  border-color: rgba(91,138,245,.3); }
+  .badge-arch { background: rgba(45,212,191,.12); color: var(--teal);    border-color: rgba(45,212,191,.3); }
+  .badge-pool { background: rgba(245,200,66,.12); color: var(--gold);    border-color: rgba(245,200,66,.3); }
+  .badge-err  { background: rgba(248,113,113,.12); color: var(--coral);  border-color: rgba(248,113,113,.3); }
+
+  .section-title {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: .4rem;
+    color: var(--text);
+  }
+  .section-intro {
+    font-size: 13.5px;
+    color: var(--muted);
+    margin-bottom: 1.25rem;
+    max-width: 700px;
+    line-height: 1.75;
+  }
+
+  /* ── Code block with explanation ── */
+  .explain-block {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 1.25rem;
+  }
+  .explain-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: .55rem 1rem;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    cursor: pointer;
+    user-select: none;
+  }
+  .explain-header:hover { color: var(--text); }
+  .explain-header .chevron { margin-left: auto; transition: transform .2s; font-size: 10px; }
+  .explain-header.open .chevron { transform: rotate(180deg); }
+
+  .code-pane {
+    background: #0A0C10;
+    padding: 1rem 1.25rem;
+    font-family: var(--f-mono);
+    font-size: 12.5px;
+    line-height: 1.9;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    white-space: pre;
+  }
+
+  .explain-pane {
+    padding: 1rem 1.25rem;
+    background: var(--surface);
+    display: none;
+  }
+  .explain-pane.open { display: block; }
+
+  /* Syntax highlighting */
+  .kw  { color: var(--accent2); font-weight: 600; }
+  .cls { color: var(--teal); }
+  .fn  { color: var(--accent); }
+  .str { color: var(--green); }
+  .cm  { color: #4A5568; font-style: italic; }
+  .num { color: var(--orange); }
+  .dec { color: var(--gold); }
+  .err { color: var(--coral); }
+  .tp  { color: var(--purple); }
+
+  /* Explanation rows */
+  .exp-row {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: .75rem;
+    padding: .6rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .exp-row:last-child { border-bottom: none; }
+  .exp-label {
+    font-family: var(--f-mono);
+    font-size: 11.5px;
+    color: var(--gold);
+    font-weight: 600;
+    padding-top: 1px;
+  }
+  .exp-text { color: var(--text); line-height: 1.65; }
+  .exp-text .hl  { background: rgba(91,138,245,.15); color: var(--accent); padding: 1px 5px; border-radius: 4px; font-family: var(--f-mono); font-size: 11.5px; }
+  .exp-text .hlg { background: rgba(45,212,191,.12); color: var(--teal);   padding: 1px 5px; border-radius: 4px; font-family: var(--f-mono); font-size: 11.5px; }
+  .exp-text .hlr { background: rgba(248,113,113,.12);color: var(--coral);  padding: 1px 5px; border-radius: 4px; font-family: var(--f-mono); font-size: 11.5px; }
+  .exp-text .hly { background: rgba(245,200,66,.12); color: var(--gold);   padding: 1px 5px; border-radius: 4px; font-family: var(--f-mono); font-size: 11.5px; }
+  .exp-text .hlp { background: rgba(192,132,252,.12);color: var(--purple); padding: 1px 5px; border-radius: 4px; font-family: var(--f-mono); font-size: 11.5px; }
+
+  /* Callout boxes */
+  .callout {
+    display: flex;
+    gap: .75rem;
+    padding: .75rem 1rem;
+    border-radius: 8px;
+    margin: .75rem 0;
+    font-size: 13px;
+    line-height: 1.65;
+    border: 1px solid;
+  }
+  .callout-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .callout-why  { background: rgba(91,138,245,.08); border-color: rgba(91,138,245,.25); color: #A5C0F8; }
+  .callout-tip  { background: rgba(45,212,191,.08); border-color: rgba(45,212,191,.25); color: #6EE7D8; }
+  .callout-warn { background: rgba(245,200,66,.08); border-color: rgba(245,200,66,.25); color: #F5D76E; }
+  .callout-err  { background: rgba(248,113,113,.08);border-color: rgba(248,113,113,.25);color: #FCA5A5; }
+
+  /* Flow diagram */
+  .flow-diagram {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin: 1rem 0;
+    flex-wrap: wrap;
+  }
+  .flow-box {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: .5rem 1rem;
+    font-size: 12px;
+    font-family: var(--f-mono);
+    text-align: center;
+    color: var(--text);
+  }
+  .flow-arrow { color: var(--muted); padding: 0 .4rem; font-size: 18px; }
+
+  /* Block pills */
+  .pill {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: var(--f-mono);
+    margin: 1px;
+  }
+  .pill-def  { background: rgba(91,138,245,.15);  color: var(--accent); }
+  .pill-defb { background: rgba(124,91,245,.15);  color: var(--accent2); }
+  .pill-cd   { background: rgba(45,212,191,.15);  color: var(--teal); }
+  .pill-cb   { background: rgba(251,146,60,.15);  color: var(--orange); }
+  .pill-pool { background: rgba(245,200,66,.15);  color: var(--gold); }
+
+  /* Table */
+  .ref-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: .5rem 0 1rem; }
+  .ref-table th { text-align: left; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 6px 10px; border-bottom: 1px solid var(--border2); }
+  .ref-table td { padding: 6px 10px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; }
+  .ref-table tr:last-child td { border-bottom: none; }
+  .ref-table td:first-child { font-family: var(--f-mono); font-size: 11.5px; color: var(--accent); }
+
+  /* Line-number annotation list */
+  .line-list { list-style: none; }
+  .line-list li {
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    gap: .75rem;
+    padding: .55rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .line-list li:last-child { border-bottom: none; }
+  .line-num {
+    font-family: var(--f-mono);
+    font-size: 11.5px;
+    color: var(--muted);
+    padding-top: 2px;
+  }
+  .line-num span { color: var(--gold); font-weight: 600; }
+
+  /* Expand all button */
+  .expand-all {
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--muted);
+    font-family: var(--f-body);
+    font-size: 12px;
+    padding: 5px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-bottom: 1rem;
+    transition: color .15s, border-color .15s;
+  }
+  .expand-all:hover { color: var(--text); border-color: var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+<!-- ── Sidebar ── -->
+<nav class="sidebar">
+  <div class="sidebar-title">Study Guide</div>
+
+  <div class="nav-file">preprocessor.py</div>
+  <a class="nav-item" onclick="scrollTo('pre-overview')">Overview</a>
+  <a class="nav-item" onclick="scrollTo('pre-dataclass')">ParsedLine dataclass</a>
+  <a class="nav-item" onclick="scrollTo('pre-class')">Preprocessor class</a>
+  <a class="nav-item" onclick="scrollTo('pre-process')">process() method</a>
+  <a class="nav-item" onclick="scrollTo('pre-export')">export_to_file()</a>
+
+  <div class="nav-file">pass_one.py</div>
+  <a class="nav-item" onclick="scrollTo('p1-overview')">Overview</a>
+  <a class="nav-item" onclick="scrollTo('p1-class')">Class constants</a>
+  <a class="nav-item" onclick="scrollTo('p1-init')">__init__ state</a>
+  <a class="nav-item" onclick="scrollTo('p1-block-helpers')">Block helpers</a>
+  <a class="nav-item" onclick="scrollTo('p1-symbol')">Symbol management</a>
+  <a class="nav-item" onclick="scrollTo('p1-expr')">Expression evaluation</a>
+  <a class="nav-item" onclick="scrollTo('p1-byte')">BYTE / literal size</a>
+  <a class="nav-item" onclick="scrollTo('p1-pool')">POOL collection</a>
+  <a class="nav-item" onclick="scrollTo('p1-start')">START directive</a>
+  <a class="nav-item" onclick="scrollTo('p1-directive')">Directive processing</a>
+  <a class="nav-item" onclick="scrollTo('p1-machine')">Machine instructions</a>
+  <a class="nav-item" onclick="scrollTo('p1-parse')">_parse_instruction()</a>
+  <a class="nav-item" onclick="scrollTo('p1-main')">process_pass_one()</a>
+  <a class="nav-item" onclick="scrollTo('p1-export')">Export methods</a>
+</nav>
+
+<!-- ── Main ── -->
+<main class="main">
+
+  <div class="hero">
+    <div class="hero-eyebrow">Systems Programming · CC410</div>
+    <div class="hero-title">Pass 1 & Preprocessor<br>Line-by-Line Study Guide</div>
+    <div class="hero-sub">Every class, method, and line explained so you can answer any TA question with confidence.</div>
+  </div>
+
+  <button class="expand-all" onclick="expandAll()">Expand all sections</button>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- PREPROCESSOR OVERVIEW -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="section" id="pre-overview">
+    <div class="section-badge badge-pre">preprocessor.py</div>
+    <div class="section-title">What does the Preprocessor do?</div>
+    <div class="section-intro">
+      Before Pass 1 can do any real work, the raw assembly text file must be cleaned up. The Preprocessor's job is to take the raw lines of <code style="font-family:var(--f-mono);color:var(--accent)">in.txt</code> and convert them into structured objects that the rest of the assembler can work with easily.
+    </div>
+
+    <div class="flow-diagram">
+      <div class="flow-box">in.txt<br><span style="color:var(--muted);font-size:10px;">raw text</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box">Preprocessor<br><span style="color:var(--muted);font-size:10px;">strips comments, splits fields</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box">list[ParsedLine]<br><span style="color:var(--muted);font-size:10px;">structured objects</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box">Pass 1<br><span style="color:var(--muted);font-size:10px;">uses these objects</span></div>
+    </div>
+
+    <div class="callout callout-why">
+      <div class="callout-icon">💡</div>
+      <div><strong>Why separate this step?</strong> Assembly files contain messy content: inline comments, blank lines, variable whitespace. By cleaning all of that in one place first, Pass 1 can focus purely on logic without worrying about formatting.</div>
+    </div>
+  </div>
+
+  <!-- ParsedLine dataclass -->
+  <div class="section" id="pre-dataclass">
+    <div class="section-badge badge-pre">preprocessor.py · lines 1–17</div>
+    <div class="section-title">The ParsedLine dataclass</div>
+
+    <div class="explain-block">
+      <div class="explain-header" onclick="toggle(this)">
+        <span>📄</span> Lines 1–17 — imports + ParsedLine definition
+        <span class="chevron">▼</span>
+      </div>
+      <div class="code-pane"><span class="kw">from</span> dataclasses <span class="kw">import</span> field, dataclass
+<span class="kw">from</span> typing <span class="kw">import</span> Optional
+
+<span class="dec">@dataclass</span>
+<span class="kw">class</span> <span class="cls">ParsedLine</span>:
+    line_no: <span class="tp">int</span>
+    first:   <span class="tp">str</span>
+    second:  <span class="tp">Optional</span>[<span class="tp">str</span>] = field(default=<span class="kw">None</span>)
+    third:   <span class="tp">Optional</span>[<span class="tp">str</span>] = field(default=<span class="kw">None</span>)
+
+    <span class="dec">@property</span>
+    <span class="kw">def</span> <span class="fn">number_of_parts</span>(self) -> <span class="tp">int</span>:
+        <span class="kw">return</span> (
+            (self.first  <span class="kw">is not None</span>)
+            + (self.second <span class="kw">is not None</span>)
+            + (self.third  <span class="kw">is not None</span>)
+        )</div>
+      <div class="explain-pane">
+        <ul class="line-list">
+          <li>
+            <div class="line-num">Line <span>1</span></div>
+            <div><span class="exp-text"><span class="hl">from dataclasses import field, dataclass</span> — Python's <span class="hl">dataclass</span> decorator automatically generates boilerplate like <span class="hl">__init__</span> and <span class="hl">__repr__</span> so you don't have to write them manually. <span class="hl">field</span> lets you customise individual attributes, e.g. setting default values.</span></div>
+          </li>
+          <li>
+            <div class="line-num">Line <span>2</span></div>
+            <div><span class="exp-text"><span class="hl">from typing import Optional</span> — <span class="hl">Optional[str]</span> means the value can be a string <em>or</em> <span class="hlr">None</span>. It's exactly equivalent to writing <span class="hl">str | None</span>. Used here because <span class="hlg">second</span> and <span class="hlg">third</span> fields won't always exist.</span></div>
+          </li>
+          <li>
+            <div class="line-num">Line <span>4 @dataclass</span></div>
+            <div><span class="exp-text">The <span class="hlp">@dataclass</span> decorator tells Python: "automatically build an <span class="hl">__init__</span> that takes <span class="hlg">line_no</span>, <span class="hlg">first</span>, <span class="hlg">second</span>, <span class="hlg">third</span> as constructor parameters." Without it, we'd need to write all that manually.</span></div>
+          </li>
+          <li>
+            <div class="line-num">Line <span>6 line_no</span></div>
+            <div><span class="exp-text">Stores the original line number from the source file. This is crucial for error messages — when the TA's auto-grader reports an error, it needs to say <em>which line</em> caused it.</span></div>
+          </li>
+          <li>
+            <div class="line-num">Line <span>7 first</span></div>
+            <div><span class="exp-text"><span class="hlg">first</span> is always present (no default = required). In assembly, this is the first whitespace-separated token of a line. It could be a <strong>label</strong> (e.g. <span class="hly">ALPHA</span>), a <strong>mnemonic</strong> (e.g. <span class="hly">LDA</span>), or a <strong>directive</strong> (e.g. <span class="hly">START</span>).</span></div>
+          </li>
+          <li>
+            <div class="line-num">Line <span>8 second</span></div>
+            <div><span class="exp-text"><span class="hlg">second</span> defaults to <span class="hlr">None</span> if the line has fewer than 2 tokens. This is the second field — could be a mnemonic (if first was a label) or an operand (if first was a mnemonic).</span></div>
+          </li>
+          <li>
+            <div class="line-num">Line <span>9 third</span></div>
+            <div><span class="exp-text"><span class="hlg">third</span> is the operand when a full label + mnemonic + operand triple is present. e.g. for <span class="hly">ALPHA LDA BETA</span>, first=ALPHA, second=LDA, third=BETA.</span></div>
+          </li>
+          <li>
+            <div class="line-num">Lines <span>11–17</span></div>
+            <div><span class="exp-text">The <span class="hlp">@property</span> <span class="hl">number_of_parts</span> counts how many of the three fields are non-None. The trick: <span class="hl">(self.first is not None)</span> evaluates to the integer <span class="hlg">1</span> (True) or <span class="hlr">0</span> (False) in Python. Summing them gives 1, 2, or 3. Pass 1 uses this to decide if a line has a label, mnemonic-only, or mnemonic+operand.</span></div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Preprocessor class -->
+  <div class="section" id="pre-class">
+    <div class="section-badge badge-pre">preprocessor.py · Preprocessor class</div>
+    <div class="section-title">The Preprocessor class — __init__</div>
+
+    <div class="explain-block">
+      <div class="explain-header" onclick="toggle(this)">
+        <span>🏗️</span> __init__ — class initialisation
+        <span class="chevron">▼</span>
+      </div>
+      <div class="code-pane"><span class="kw">class</span> <span class="cls">Preprocessor</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self) -> <span class="kw">None</span>:
+        self.parsed_lines: <span class="tp">list</span>[<span class="cls">ParsedLine</span>] = []</div>
+      <div class="explain-pane">
+        <ul class="line-list">
+          <li>
+            <div class="line-num">__init__</div>
+            <div class="exp-text">Creates one instance variable: <span class="hl">self.parsed_lines</span>, initialised to an empty list. This list will be filled by <span class="hlg">process()</span> and later read by <span class="hlg">export_to_file()</span>. Keeping it on <span class="hl">self</span> means both methods share the same data.</div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- process() -->
+  <div class="section" id="pre-process">
+    <div class="section-badge badge-pre">preprocessor.py · process()</div>
+    <div class="section-title">The process() method — line by line</div>
+    <div class="section-intro">This is the core cleaning loop. It iterates over every raw string from in.txt and decides what to keep.</div>
+
+    <div class="explain-block">
+      <div class="explain-header" onclick="toggle(this)">
+        <span>⚙️</span> process() — full breakdown
+        <span class="chevron">▼</span>
+      </div>
+      <div class="code-pane"><span class="kw">def</span> <span class="fn">process</span>(self, input_lines: <span class="tp">list</span>[<span class="tp">str</span>]) -> <span class="tp">list</span>[<span class="cls">ParsedLine</span>]:
+    result = []
+    <span class="kw">for</span> i, line <span class="kw">in</span> enumerate(input_lines):
+        line = line.strip()
+
+        <span class="kw">if</span> <span class="str">"."</span> <span class="kw">in</span> line:
+            dot_idx = line.find(<span class="str">" ."</span>)
+            <span class="kw">if</span> dot_idx != -<span class="num">1</span>:
+                line = line[:dot_idx]
+
+            <span class="kw">if</span> line.lstrip().startswith(<span class="str">"."</span>):
+                <span class="kw">continue</span>
+
+        split_line = line.split()
+        <span class="kw">if not</span> split_line:
+            <span class="kw">continue</span>
+
+        new_parsed_line = <span class="cls">ParsedLine</span>(
+            line_no=i,
+            first=split_line[<span class="num">0</span>],
+            second=split_line[<span class="num">1</span>] <span class="kw">if</span> len(split_line) > <span class="num">1</span> <span class="kw">else None</span>,
+            third=split_line[<span class="num">2</span>]  <span class="kw">if</span> len(split_line) > <span class="num">2</span> <span class="kw">else None</span>,
+        )
+        result.append(new_parsed_line)
+
+    self.parsed_lines = result
+    <span class="kw">return</span> result</div>
+      <div class="explain-pane">
+        <ul class="line-list">
+          <li>
+            <div class="line-num">result = []</div>
+            <div class="exp-text">A local accumulator list. We build it up during the loop and return it at the end. It's separate from <span class="hl">self.parsed_lines</span> so we can assign the whole result atomically on the last line (not one-by-one as we go).</div>
+          </li>
+          <li>
+            <div class="line-num">enumerate()</div>
+            <div class="exp-text"><span class="hl">enumerate(input_lines)</span> gives us both the index <span class="hlg">i</span> (0-based line number) and the <span class="hlg">line</span> string together. Without enumerate, we'd need a separate counter variable.</div>
+          </li>
+          <li>
+            <div class="line-num">line.strip()</div>
+            <div class="exp-text">Removes leading and trailing whitespace (spaces, tabs, newlines). This handles Windows <span class="hlr">\r\n</span> line endings and any accidental indentation at the start of lines.</div>
+          </li>
+          <li>
+            <div class="line-num">if "." in line</div>
+            <div class="exp-text">SIC/XE uses <span class="hly">.</span> as the comment character. This block only runs if there's any dot at all on the line — an optimisation to avoid running comment logic on every single line.</div>
+          </li>
+          <li>
+            <div class="line-num">line.find(" .")</div>
+            <div class="exp-text">Searches for a <strong>space followed by a dot</strong> — this pattern marks an <em>inline comment</em> appended after code: <span class="hly">LDA ALPHA . load accumulator</span>. If found, <span class="hl">line = line[:dot_idx]</span> chops everything from that point onward, keeping only the code part.</div>
+          </li>
+          <li>
+            <div class="line-num">lstrip().startswith(".")</div>
+            <div class="exp-text">After removing inline comments, check if what remains (after stripping leading spaces) starts with a dot. If yes, the entire line is a comment line — skip it with <span class="hl">continue</span>.</div>
+          </li>
+          <li>
+            <div class="line-num">line.split()</div>
+            <div class="exp-text"><span class="hl">str.split()</span> with no argument splits on <em>any</em> whitespace (spaces, multiple spaces, tabs) and discards empties. So <span class="hly">"ALPHA   LDA   BETA"</span> → <span class="hlg">["ALPHA", "LDA", "BETA"]</span>. Much more robust than splitting on a single space.</div>
+          </li>
+          <li>
+            <div class="line-num">if not split_line</div>
+            <div class="exp-text">If the line was all whitespace or empty, <span class="hl">split()</span> returns an empty list. <span class="hl">if not []</span> is True, so we skip it with <span class="hl">continue</span>. This handles blank lines between instructions.</div>
+          </li>
+          <li>
+            <div class="line-num">ParsedLine(...)</div>
+            <div class="exp-text">Constructs the structured object. <span class="hlg">first</span> is always <span class="hl">split_line[0]</span>. <span class="hlg">second</span> and <span class="hlg">third</span> use conditional expressions: <span class="hl">split_line[1] if len(split_line) > 1 else None</span> — avoids IndexError when the list is short.</div>
+          </li>
+          <li>
+            <div class="line-num">self.parsed_lines = result</div>
+            <div class="exp-text">Saves the finished list onto the instance so <span class="hlg">export_to_file()</span> can access it later without being passed the data explicitly.</div>
+          </li>
+        </ul>
+        <div class="callout callout-warn">
+          <div class="callout-icon">⚠️</div>
+          <div><strong>TA gotcha:</strong> The preprocessor does <em>not</em> know whether <span class="hl">first</span> is a label or a mnemonic — it just blindly picks the first token. It is Pass 1's job to figure that out by checking whether <span class="hl">first</span> matches a known opcode/directive.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- export_to_file -->
+  <div class="section" id="pre-export">
+    <div class="section-badge badge-pre">preprocessor.py · export_to_file()</div>
+    <div class="section-title">export_to_file() — writing the intermediate file</div>
+
+    <div class="explain-block">
+      <div class="explain-header" onclick="toggle(this)">
+        <span>💾</span> export_to_file() — breakdown
+        <span class="chevron">▼</span>
+      </div>
+      <div class="code-pane"><span class="kw">def</span> <span class="fn">export_to_file</span>(self, output_path: <span class="tp">str</span>) -> <span class="kw">None</span>:
+    header    = <span class="str">f"{'Line':<8}{'First':<12}{'Second':<12}{'Third'}"</span>
+    separator = <span class="str">"-"</span> * <span class="num">45</span>
+    <span class="kw">try</span>:
+        <span class="kw">with</span> open(output_path, <span class="str">"w"</span>) <span class="kw">as</span> f:
+            f.write(header + <span class="str">"\n"</span>)
+            f.write(separator + <span class="str">"\n"</span>)
+            <span class="kw">for</span> line <span class="kw">in</span> self.parsed_lines:
+                l_no = str(line.line_no)
+                lbl  = line.first  <span class="kw">or</span> <span class="str">""</span>
+                opc  = line.second <span class="kw">or</span> <span class="str">""</span>
+                opr  = line.third  <span class="kw">or</span> <span class="str">""</span>
+                formatted_row = <span class="str">f"{l_no:<8}{lbl:<12}{opc:<12}{opr}"</span>
+                f.write(formatted_row.rstrip() + <span class="str">"\n"</span>)
+    <span class="kw">except</span> <span class="cls">IOError</span> <span class="kw">as</span> e:
+        print(<span class="str">f"Failed to write export file: {e}"</span>)</div>
+      <div class="explain-pane">
+        <ul class="line-list">
+          <li>
+            <div class="line-num">f-string :<8</div>
+            <div class="exp-text"><span class="hl">{'Line':<8}</span> is an f-string format spec meaning: left-align the string and pad it to 8 characters wide with spaces. This creates aligned columns in the output file — important for readability and for automated parsers that expect fixed-width fields.</div>
+          </li>
+          <li>
+            <div class="line-num">line.first or ""</div>
+            <div class="exp-text"><span class="hl">line.first or ""</span> — if <span class="hl">first</span> is <span class="hlr">None</span> or empty, use an empty string instead. Prevents <span class="hlr">None</span> from being printed literally in the file.</div>
+          </li>
+          <li>
+            <div class="line-num">.rstrip()</div>
+            <div class="exp-text">Removes trailing spaces from each row before writing. Without this, rows with empty <span class="hlg">second</span>/<span class="hlg">third</span> would have trailing whitespace — which some diff tools and auto-graders flag as errors.</div>
+          </li>
+          <li>
+            <div class="line-num">except IOError</div>
+            <div class="exp-text">Wraps the file operation in a try/except. If the file can't be created (e.g. permissions issue, invalid path), it prints a helpful message instead of crashing the whole assembler.</div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- PASS ONE OVERVIEW -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="section" id="p1-overview">
+    <div class="section-badge badge-p1">pass_one.py</div>
+    <div class="section-title">What does Pass 1 do?</div>
+    <div class="section-intro">Pass 1 reads every ParsedLine and answers one fundamental question: <strong>what memory address does each symbol live at?</strong> It tracks a separate location counter (LC) for each of the five memory blocks.</div>
+
+    <div class="flow-diagram">
+      <div class="flow-box">list[ParsedLine]</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box">AssemblerPassOne<br>.process_pass_one()</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box">symbTable.txt<br>PoolTable.txt<br>intermediate.txt</div>
+    </div>
+
+    <table class="ref-table" style="margin-top:1rem;">
+      <thead><tr><th>Block</th><th>Purpose (from spec)</th></tr></thead>
+      <tbody>
+        <tr><td><span class="pill pill-def">DEFAULT</span></td><td>Format 1 and Format 2 executable instructions</td></tr>
+        <tr><td><span class="pill pill-defb">DEFAULTB</span></td><td>Format 3 and Format 4 executable instructions</td></tr>
+        <tr><td><span class="pill pill-cd">CDATA</span></td><td>Smaller-sized data (constants etc.)</td></tr>
+        <tr><td><span class="pill pill-cb">CBLKS</span></td><td>Larger reserved memory blocks</td></tr>
+        <tr><td><span class="pill pill-pool">POOL</span></td><td>Assembler-managed; stores &-prefixed literal values</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Class constants -->
+  <div class="section" id="p1-class">
+    <div class="section-badge badge-p1">pass_one.py · lines 30–41</div>
+    <div class="section-title">Class-level constants</div>
+
+    <div class="explain-block">
+      <div class="explain-header" onclick="toggle(this)">
+        <span>📌</span> _USER_BLOCKS and _USE_BLOCK_MAP
+        <span class="chevron">▼</span>
+      </div>
+      <div class="code-pane"><span class="kw">class</span> <span class="cls">AssemblerPassOne</span>:
+    _USER_BLOCKS: <span class="tp">tuple</span>[<span class="cls">MemoryBlock</span>, ...] = (
+        <span class="cls">MemoryBlock</span>.DEFAULT,
+        <span class="cls">MemoryBlock</span>.DEFAULTB,
+        <span class="cls">MemoryBlock</span>.CDATA,
+        <span class="cls">MemoryBlock</span>.CBLKS,
+    )
+    _USE_BLOCK_MAP: <span class="tp">dict</span>[<span class="tp">str</span>, <span class="cls">MemoryBlock</span>] = {
+        <span class="cls">MemoryBlock</span>.DEFAULT.value:  <span class="cls">MemoryBlock</span>.DEFAULT,
+        <span class="cls">MemoryBlock</span>.DEFAULTB.value: <span class="cls">MemoryBlock</span>.DEFAULTB,
+        <span class="cls">MemoryBlock</span>.CDATA.value:    <span class="cls">MemoryBlock</span>.CDATA,
+        <span class="cls">MemoryBlock</span>.CBLKS.value:    <span class="cls">MemoryBlock</span>.CBLKS,
+    }</div>
+      <div class="explain-pane">
+        <ul class="line-list">
+          <li>
+            <div class="line-num">_USER_BLOCKS</div>
+            <div class="exp-text">A tuple of the four blocks the <em>user</em> can switch into with a USE directive. Notice <span class="hlp">POOL is absent</span> — users cannot write <span class="hlr">USE POOL</span>; it is assembler-managed only. Being a class variable (not instance variable) means it's shared across all instances and defined once.</div>
+          </li>
+          <li>
+            <div class="line-num">Underscore prefix _</div>
+            <div class="exp-text">The leading underscore on <span class="hl">_USER_BLOCKS</span> and <span class="hl">_USE_BLOCK_MAP</span> is a Python convention meaning "this is intended to be private / internal." It's not enforced by the language but signals to other developers not to access these directly from outside the class.</div>
+          </li>
+          <li>
+            <div class="line-num">_USE_BLOCK_MAP</div>
+            <div class="exp-text">Maps the string name (e.g. <span class="hly">"DEFAULT"</span>) to the enum value (<span class="hl">MemoryBlock.DEFAULT</span>). When the assembler sees <span class="hly">USE CDATA</span>, it looks up <span class="hly">"CDATA"</span> in this dict. If it's not found, it's an <span class="hlr">UnidentifiedBlockNameError</span> per the spec.</div>
+          </li>
+          <li>
+            <div class="line-num">.value</div>
+            <div class="exp-text"><span class="hl">MemoryBlock.DEFAULT.value</span> gives the string representation of the enum, e.g. <span class="hly">"DEFAULT"</span>. This is what comes from the assembly source file, so the dict key must be the string form.</div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- __init__ -->
+  <div class="section" id="p1-init">
+    <div class="section-badge badge-p1">pass_one.py · lines 43–62</div>
+    <div class="section-title">__init__ — all state variables explained</div>
+
+    <div class="explain-block">
+      <div class="explain-header" onclick="toggle(this)">
+        <span>🧠</span> Every instance variable and why it exists
+        <span class="chevron">▼</span>
+      </div>
+      <div class="code-pane"><span class="kw">def</span> <span class="fn">__init__</span>(self) -> <span class="kw">None</span>:
+    <span class="cm"># --- Location Counters (one per block) ---</span>
+    self.default_block_loc   = <span class="num">0</span>
+    self.default_b_block_loc = <span class="num">0</span>
+    self.cdata_block_loc     = <span class="num">0</span>
+    self.cblocks_block_loc   = <span class="num">0</span>
+    self.pool_block_loc      = <span class="num">0</span>
+
+    <span class="cm"># --- Symbol Tables (one per block) ---</span>
+    self.default_block_symtab:   <span class="tp">dict</span>[<span class="tp">str</span>, <span class="tp">int</span>] = {}
+    self.default_b_block_symtab: <span class="tp">dict</span>[<span class="tp">str</span>, <span class="tp">int</span>] = {}
+    self.cdata_block_symtab:     <span class="tp">dict</span>[<span class="tp">str</span>, <span class="tp">int</span>] = {}
+    self.cblocks_block_symtab:   <span class="tp">dict</span>[<span class="tp">str</span>, <span class="tp">int</span>] = {}
+    self.pool_block_symtab:      <span class="tp">dict</span>[<span class="tp">str</span>, <span class="tp">int</span>] = {}
+
+    <span class="cm"># --- Assembled instruction list ---</span>
+    self.instructions: <span class="tp">list</span>[<span class="cls">AssemblyInstruction</span>] = []
+    self.start_address = <span class="num">0</span>
+    self.program_name  = <span class="str">""</span>
+
+    <span class="cm"># --- POOL management ---</span>
+    self._pending_literals:     <span class="tp">list</span>[<span class="tp">str</span>] = []
+    self._pending_literals_set: <span class="tp">set</span>[<span class="tp">str</span>]  = set()
+    self._pool_anchor_block: <span class="tp">Optional</span>[<span class="cls">MemoryBlock</span>] = <span class="kw">None</span></div>
+      <div class="explain-pane">
+        <ul class="line-list">
+          <li>
+            <div class="line-num">5 loc counters</div>
+            <div class="exp-text">Each block gets its own integer location counter, all starting at 0. As instructions are processed, the counter for the <em>currently active</em> block advances by the instruction's byte size. They are kept separate because the blocks are laid out independently in memory.</div>
+          </li>
+          <li>
+            <div class="line-num">5 symtabs</div>
+            <div class="exp-text">Each block has its own <span class="hl">dict[str, int]</span> — label name → LC value. Keeping them separate per block allows the assembler to correctly scope symbols and detect if the same label appears in two different blocks (which is a <span class="hlr">DuplicateSymbolError</span>).</div>
+          </li>
+          <li>
+            <div class="line-num">self.instructions</div>
+            <div class="exp-text">A list of <span class="hl">AssemblyInstruction</span> objects built up during Pass 1. Each object stores the parsed line <em>plus</em> the block and LC assigned to it. This list is later used by Pass 2 and by <span class="hlg">export_intermediate_table()</span>.</div>
+          </li>
+          <li>
+            <div class="line-num">_pending_literals</div>
+            <div class="exp-text">A <strong>list</strong> of <span class="hly">&-operand</span> strings seen so far but not yet assigned a POOL address. The list preserves insertion order (important for reproducible output).</div>
+          </li>
+          <li>
+            <div class="line-num">_pending_literals_set</div>
+            <div class="exp-text">A <strong>set</strong> of the same literals. Sets have O(1) lookup, so checking "have I seen this literal before?" is instant. The list is for order; the set is for speed. They are always kept in sync.</div>
+          </li>
+          <li>
+            <div class="line-num">_pool_anchor_block</div>
+            <div class="exp-text">Records <em>which block was active</em> when the first <span class="hly">&</span> operand was encountered. Per the spec: "the position of the POOL block within the final memory layout is determined by the point at which the first & operand is encountered." This variable captures that point.</div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Block helpers -->
+  <div class="section" id="p1-block-helpers">
+    <div class="section-badge badge-p1">pass_one.py · lines 64–123</div>
+    <div class="section-title">Block helper methods — the match/case trio</div>
+    <div class="section-intro">Rather than writing <code style="font-family:var(--f-mono);color:var(--accent)">if block == CDATA: self.cdata_block_loc = ...</code> everywhere, three helper methods centralise all block-routing logic.</div>
+
+    <div class="explain-block">
+      <div class="explain-header" onclick="toggle(this)">
+        <span>🔀</span> _block_symtab, _get_block_loc, _set_block_loc
+        <span class="chevron">▼</span>
+      </div>
+      <div class="code-pane"><span class="kw">def</span> <span class="fn">_block_symtab</span>(self, block: <span class="cls">MemoryBlock</span>) -> <span class="tp">dict</span>[<span class="tp">str</span>, <span class="tp">int</span>]:
+    <span class="kw">match</span> block:
+        <span class="kw">case</span> <span class="cls">MemoryBlock</span>.DEFAULT:  <span class="kw">return</span> self.default_block_symtab
+        <span class="kw">case</span> <span class="cls">MemoryBlock</span>.DEFAULTB: <span class="kw">return</span> self.default_b_block_symtab
+        <span class="kw">case</span> <span class="cls">MemoryBlock</span>.CDATA:    <span class="kw">return</span> self.cdata_block_symtab
+        <span class="kw">case</span> <span class="cls">MemoryBlock</span>.CBLKS:    <span class="kw">return</span> self.cblocks_block_symtab
+        <span class="kw">case</span> <span class="cls">MemoryBlock</span>.POOL:     <span class="kw">return</span> self.pool_block_symtab
+        <span class="kw">case</span> _: <span class="kw">raise</span> <span class="cls">ValueError</span>(...)
+
+<span class="kw">def</span> <span class="fn">_get_block_loc</span>(self, block) -> <span class="tp">int</span>:   <span class="cm"># same match pattern</span>
+<span class="kw">def</span> <span class="fn">_set_block_loc</span>(self, block, value: <span class="tp">int</span>) -> <span class="kw">None</span>:  <span class="cm"># same + assigns</span></div>
+      <div class="explain-pane">
+        <ul class="line-list">
+          <li>
+            <div class="line-num">match/case</div>
+            <div class="exp-text">Python 3.10+ structural pattern matching. <span class="hl">match block:</span> is like a type-safe switch statement. Each <span class="hl">case MemoryBlock.X:</span> matches exactly one enum value. <span class="hl">case _:</span> is the catch-all (default) — if an unknown block is passed, it raises <span class="hlr">ValueError</span> immediately rather than silently doing nothing.</div>
+          </li>
+          <li>
+            <div class="line-num">Why 3 methods?</div>
+            <div class="exp-text"><strong>_block_symtab</strong>: given a block enum, returns its dict (read + write via the reference). <strong>_get_block_loc</strong>: returns the current LC integer for a block. <strong>_set_block_loc</strong>: writes a new LC integer. This design means all the rest of Pass 1 just calls <span class="hlg">_get_block_loc(block)</span> and <span class="hlg">_set_block_loc(block, new_val)</span> — never touches the raw attributes directly.</div>
+          </li>
+          <li>
+            <div class="line-num">case _:</div>
+            <div class="exp-text">The wildcard. If someone passes a <span class="hl">MemoryBlock</span> value that isn't handled above — which shouldn't happen in correct code — the <span class="hlr">ValueError</span> acts as a safety net / defensive programming. Better to crash loudly than to silently corrupt state.</div>
+          </li>
+        </ul>
+        <div class="callout callout-tip">
+          <div class="callout-icon">💡</div>
+          <div><strong>Design insight:</strong> All three methods follow the same <span class="hl">match block:</span> pattern. This is called a <em>dispatch table</em> pattern — instead of scattering if/elif chains around the codebase, block routing is centralised here. When you add a new block, you only change these three methods.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- _resolve_use_block -->
+    <div class="explain-block">
+      <div class="explain-header" onclick="toggle(this)">
+        <span>🔒</span> _resolve_use_block — validates USE operands
+        <span class="chevron">▼</span>
+      </div>
+      <div class="code-pane"><span class="kw">def</span> <span class="fn">_resolve_use_block</span>(
+    self, operand: <span class="tp">Optional</span>[<span class="tp">str</span>], program_counter: <span class="tp">int</span>, line_no: <span class="tp">int</span>
+) -> <span class="cls">MemoryBlock</span>:
+    <span class="kw">if</span> operand <span class="kw">is None</span>:
+        <span class="kw">return</span> <span class="cls">MemoryBlock</span>.DEFAULT
+
+    block = self._USE_BLOCK_MAP.get(operand.upper())
+    <span class="kw">if</span> block <span class="kw">is None</span>:
+        expected = <span class="str">", "</span>.join(self._USE_BLOCK_MAP)
+        <span class="kw">raise</span> <span class="cls">UnidentifiedBlockNameError</span>(
+            <span class="str">f"Unidentified Block Name: '{operand}'. Expected one of {expected}."</span>,
+            program_counter,
+            line_no,
+        )
+    <span class="kw">return</span> block</div>
+      <div class="explain-pane">
+        <ul class="line-list">
+          <li>
+            <div class="line-num">operand is None</div>
+            <div class="exp-text">A bare <span class="hly">USE</span> with no operand means "switch back to DEFAULT." This matches the SIC/XE convention where <span class="hly">USE</span> alone resets the active block.</div>
+          </li>
+          <li>
+            <div class="line-num">operand.upper()</div>
+            <div class="exp-text">Normalises the operand to uppercase before looking it up. This makes <span class="hly">use cdata</span> work the same as <span class="hly">USE CDATA</span> — case-insensitive matching, more robust.</div>
+          </li>
+          <li>
+            <div class="line-num">.get() returns None</div>
+            <div class="exp-text"><span class="hl">dict.get(key)</span> returns <span class="hlr">None</span> (not KeyError) if the key doesn't exist. So if <span class="hl">block is None</span>, the operand wasn't one of the four valid names — this is the <span class="hlr">UnidentifiedBlockNameError</span> required by the spec.</div>
+          </li>
+          <li>
+            <div class="line-num">", ".join(...)</div>
+            <div class="exp-text">Builds a human-readable list of valid block names for the error message: <span class="hly">"DEFAULT, DEFAULTB, CDATA, CBLKS"</span>. Makes the error message helpful for debugging.</div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Symbol management -->
+  <div class="section" id="p1-symbol">
+    <div class="section-badge badge-p1">pass_one.py · lines 136–164</div>
+    <div class="section-title">Symbol management methods</div>
+
+    <div class="explain-block">
+      <div class="explain-header" onclick="toggle(this)">
+        <span>🔍</span> _lookup_symbol, _lookup_symbol_entry, _add_symbol
+        <span class="chevron">▼</span>
+      </div>
+      <div class="code-pane"><span class="kw">def</span> <span class="fn">_lookup_symbol</span>(self, symbol: <span class="tp">str</span>) -> <span class="tp">Optional</span>[<span class="tp">int</span>]:
+    <span class="kw">for</span> block <span class="kw">in</span> (*self._USER_BLOCKS, <span class="cls">MemoryBlock</span>.POOL):
+        symtab = self._block_symtab(block)
+        <span class="kw">if</span> symbol <span class="kw">in</span> symtab:
+            <span class="kw">return</span> symtab[symbol]
+    <span class="kw">return None</span>
+
+<span class="kw">def</span> <span class="fn">_lookup_symbol_entry</span>(self, symbol: <span class="tp">str</span>) -> <span class="tp">Optional</span>[<span class="tp">tuple</span>[<span class="cls">MemoryBlock</span>, <span class="tp">int</span>]]:
+    <span class="kw">for</span> block <span class="kw">in</span> (*self._USER_BLOCKS, <span class="cls">MemoryBlock</span>.POOL):
+        symtab = self._block_symtab(block)
+        <span class="kw">if</span> symbol <span class="kw">in</span> symtab:
+            <span class="kw">return</span> block, symtab[symbol]
+    <span class="kw">return None</span>
+
+<span class="kw">def</span> <span class="fn">_add_symbol</span>(self, symbol, block, value, program_counter, line_no) -> <span class="kw">None</span>:
+    <span class="kw">if</span> self._lookup_symbol_entry(symbol) <span class="kw">is not None</span>:
+        <span class="kw">raise</span> <span class="cls">DuplicateSymbolError</span>(...)
+    self._block_symtab(block)[symbol] = value</div>
+      <div class="explain-pane">
+        <ul class="line-list">
+          <li>
+            <div class="line-num">*self._USER_BLOCKS</div>
+            <div class="exp-text">The <span class="hl">*</span> unpacks the tuple into the for-loop iterable. Combined with <span class="hl">MemoryBlock.POOL</span> added at the end, this searches all 5 blocks in order: DEFAULT → DEFAULTB → CDATA → CBLKS → POOL. The loop stops at the first match.</div>
+          </li>
+          <li>
+            <div class="line-num">Two lookup methods</div>
+            <div class="exp-text"><span class="hlg">_lookup_symbol</span> returns just the integer LC (useful when you only care about the address). <span class="hlg">_lookup_symbol_entry</span> returns <span class="hl">(block, LC)</span> as a tuple (useful when you also need to know <em>which block</em> the symbol is in, e.g. for duplicate detection).</div>
+          </li>
+          <li>
+            <div class="line-num">_add_symbol</div>
+            <div class="exp-text">Before adding a symbol, it calls <span class="hlg">_lookup_symbol_entry</span> to check if that symbol already exists <em>anywhere</em> across all blocks. If it does → <span class="hlr">DuplicateSymbolError</span> (required by spec). If not → writes <span class="hl">symtab[symbol] = value</span> into the correct block's dict.</div>
+          </li>
+        </ul>
+        <div class="callout callout-warn">
+          <div class="callout-icon">⚠️</div>
+          <div><strong>Important:</strong> Symbols are checked globally across ALL blocks for duplicates, even if they're in different blocks. Two labels with the same name in different blocks is still an error.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Expression evaluation -->
+  <div class="section" id="p1-expr">
+    <div class="section-badge badge-p1">pass_one.py · lines 166–247</div>
+    <div class="section-title">Expression evaluation — _try_parse_int, _resolve_term, _evaluate_expression</div>
+
+    <div class="explain-block">
+      <div class="explain-header" onclick="toggle(this)">
+        <span>🧮</span> EQU expression evaluator breakdown
+        <span class="chevron">▼</span>
+      </div>
+      <div class="code-pane"><span class="kw">def</span> <span class="fn">_try_parse_int</span>(self, token: <span class="tp">str</span>) -> <span class="tp">Optional</span>[<span class="tp">int</span>]:
+    cleaned = token.strip()
+    <span class="kw">if not</span> cleaned: <span class="kw">return None</span>
+    <span class="kw">try</span>:   <span class="kw">return</span> int(cleaned, <span class="num">0</span>)
+    <span class="kw">except</span> <span class="cls">ValueError</span>: <span class="kw">return None</span>
+
+<span class="kw">def</span> <span class="fn">_resolve_term</span>(self, term, current_loc, line_no) -> <span class="tp">int</span>:
+    cleaned = term.strip()
+    <span class="kw">while</span> cleaned.startswith((<span class="str">"#"</span>, <span class="str">"@"</span>)):
+        cleaned = cleaned[<span class="num">1</span>:]
+    <span class="kw">if</span> cleaned.endswith(<span class="str">",X"</span>): cleaned = cleaned[:-<span class="num">2</span>]
+    <span class="kw">if</span> cleaned == <span class="str">"*"</span>: <span class="kw">return</span> current_loc
+    parsed_number = self._try_parse_int(cleaned)
+    <span class="kw">if</span> parsed_number <span class="kw">is not None</span>: <span class="kw">return</span> parsed_number
+    symbol_value = self._lookup_symbol(cleaned)
+    <span class="kw">if</span> symbol_value <span class="kw">is not None</span>: <span class="kw">return</span> symbol_value
+    <span class="kw">raise</span> <span class="cls">InvalidDirectiveOperandError</span>(...)
+
+<span class="kw">def</span> <span class="fn">_evaluate_expression</span>(self, expr, current_loc, line_no) -> <span class="tp">int</span>:
+    expression = expr.replace(<span class="str">" "</span>, <span class="str">""</span>)
+    plus_idx  = expression.find(<span class="str">"+"</span>, <span class="num">1</span>)
+    minus_idx = expression.find(<span class="str">"-"</span>, <span class="num">1</span>)
+    <span class="cm"># find first operator ...</span>
+    <span class="kw">if</span> op_idx == -<span class="num">1</span>: <span class="kw">return</span> self._resolve_term(expression, ...)
+    lhs = expression[:op_idx]
+    rhs = expression[op_idx + <span class="num">1</span>:]
+    <span class="kw">return</span> left_value + right_value <span class="kw">if</span> operator == <span class="str">"+"</span> <span class="kw">else</span> left_value - right_value</div>
+      <div class="explain-pane">
+        <ul class="line-list">
+          <li>
+            <div class="line-num">int(cleaned, 0)</div>
+            <div class="exp-text">The second argument <span class="hl">0</span> means "auto-detect base." So <span class="hly">0xFF</span> → 255, <span class="hly">0b101</span> → 5, <span class="hly">010</span> → 8 (octal), bare digits → decimal. All numeric formats work automatically.</div>
+          </li>
+          <li>
+            <div class="line-num">strip #, @, ,X</div>
+            <div class="exp-text">Before resolving a term in an expression (like for EQU), addressing-mode prefixes must be stripped: <span class="hly">#</span> (immediate), <span class="hly">@</span> (indirect), <span class="hly">,X</span> (indexed). The <span class="hl">while</span> loop handles multiple stacked prefixes if present.</div>
+          </li>
+          <li>
+            <div class="line-num">cleaned == "*"</div>
+            <div class="exp-text">In SIC/XE, <span class="hly">*</span> means "current location counter." So <span class="hly">EQU *</span> assigns the label the current LC value — used to define equates relative to the current position.</div>
+          </li>
+          <li>
+            <div class="line-num">find("+", 1)</div>
+            <div class="exp-text">Starts searching for <span class="hly">+</span> from index 1 (not 0). Why? To avoid treating a leading <span class="hly">+</span> sign on a number as a binary operator. Same reasoning for <span class="hly">-</span>.</div>
+          </li>
+          <li>
+            <div class="line-num">op_idx == -1</div>
+            <div class="exp-text">If neither <span class="hly">+</span> nor <span class="hly">-</span> was found, the expression is just a single term (no arithmetic). Call <span class="hlg">_resolve_term</span> directly and return.</div>
+          </li>
+          <li>
+            <div class="line-num">lhs / rhs split</div>
+            <div class="exp-text">Splits at the operator position: <span class="hly">expression[:op_idx]</span> = left side, <span class="hly">expression[op_idx+1:]</span> = right side. Each side is resolved via <span class="hlg">_resolve_term</span> independently, then the results are added or subtracted. Supports expressions like <span class="hly">END-START</span> or <span class="hly">ALPHA+3</span>.</div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- BYTE / literal size -->
+  <div class="section" id="p1-byte">
+    <div class="section-badge badge-p1">pass_one.py · lines 249–312</div>
+    <div class="section-title">_byte_operand_size() and _literal_size()</div>
+
+    <div class="explain-block">
+      <div class="explain-header" onclick="toggle(this)">
+        <span>📏</span> Calculating byte sizes for BYTE and & literals
+        <span class="chevron">▼</span>
+      </div>
+      <div class="code-pane"><span class="kw">def</span> <span class="fn">_byte_operand_size</span>(self, operand, program_counter, line_no) -> <span class="tp">int</span>:
+    cleaned = operand.strip()
+    <span class="kw">if</span> len(cleaned) >= <span class="num">3</span> <span class="kw">and</span> cleaned[<span class="num">1</span>] == <span class="str">"'"</span> <span class="kw">and</span> cleaned.endswith(<span class="str">"'"</span>):
+        kind    = cleaned[<span class="num">0</span>].upper()   <span class="cm"># 'C' or 'X'</span>
+        payload = cleaned[<span class="num">2</span>:-<span class="num">1</span>]        <span class="cm"># content between quotes</span>
+        <span class="kw">if</span> kind == <span class="str">"C"</span>: <span class="kw">return</span> len(payload)        <span class="cm"># 1 byte per char</span>
+        <span class="kw">if</span> kind == <span class="str">"X"</span>: <span class="kw">return</span> len(payload) // <span class="num">2</span>   <span class="cm"># 2 hex digits = 1 byte</span>
+
+<span class="kw">def</span> <span class="fn">_literal_size</span>(self, literal, program_counter, line_no) -> <span class="tp">int</span>:
+    token = literal[<span class="num">1</span>:] <span class="kw">if</span> literal.startswith(<span class="str">"&"</span>) <span class="kw">else</span> literal
+    <span class="cm"># same C'/X' detection logic ...</span>
+    parsed_number = self._try_parse_int(token)
+    <span class="kw">if</span> parsed_number <span class="kw">is not None</span>: <span class="kw">return</span> <span class="num">3</span>  <span class="cm"># bare number → 1 WORD = 3 bytes</span></div>
+      <div class="explain-pane">
+        <ul class="line-list">
+          <li>
+            <div class="line-num">cleaned[1] == "'"</div>
+            <div class="exp-text">Checks that the second character is a single quote. Combined with <span class="hl">endswith("'")</span>, this confirms the format is <span class="hly">X'...'</span> or <span class="hly">C'...'</span>. The length check <span class="hl">>= 3</span> ensures there's at least a type char, two quotes, and possibly content.</div>
+          </li>
+          <li>
+            <div class="line-num">C → len(payload)</div>
+            <div class="exp-text">For character constants like <span class="hly">C'HELLO'</span>, each ASCII character is exactly 1 byte. So <span class="hly">C'HELLO'</span> = 5 bytes.</div>
+          </li>
+          <li>
+            <div class="line-num">X → len // 2</div>
+            <div class="exp-text">For hex constants like <span class="hly">X'FF2A'</span>, every 2 hex digits = 1 byte. So <span class="hly">X'FF2A'</span> = 2 bytes. Integer division <span class="hl">//</span> handles this. If the hex string has odd length, it raises an error (validated above).</div>
+          </li>
+          <li>
+            <div class="line-num">literal[1:]</div>
+            <div class="exp-text">In <span class="hlg">_literal_size</span>, the <span class="hly">&</span> prefix is stripped before analysing the format. <span class="hly">&X'10'</span> → <span class="hly">X'10'</span>, then the same C'/X' logic applies.</div>
+          </li>
+          <li>
+            <div class="line-num">bare number → 3</div>
+            <div class="exp-text">If the literal is just a number (no C' or X' wrapper), it's treated as a WORD value — 3 bytes, since SIC/XE words are 3 bytes wide.</div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- POOL collection -->
+  <div class="section" id="p1-pool">
+    <div class="section-badge badge-pool">pass_one.py · lines 314–337</div>
+    <div class="section-title">POOL management — _collect_literals & _flush_literal_pool</div>
+    <div class="section-intro">This is the heart of what makes this assembler "modified" SIC/XE. The POOL block is built automatically, invisibly, during Pass 1.</div>
+
+    <div class="explain-block">
+      <div class="explain-header" onclick="toggle(this)">
+        <span>🏊</span> Full POOL logic explained
+        <span class="chevron">▼</span>
+      </div>
+      <div class="code-pane"><span class="kw">def</span> <span class="fn">_collect_literals</span>(self, operand: <span class="tp">Optional</span>[<span class="tp">str</span>], block: <span class="cls">MemoryBlock</span>) -> <span class="kw">None</span>:
+    <span class="kw">if</span> operand <span class="kw">is None</span>: <span class="kw">return</span>
+
+    <span class="kw">for</span> raw <span class="kw">in</span> operand.split(<span class="str">","</span>):
+        token = raw.strip()
+        <span class="kw">if not</span> token.startswith(<span class="str">"&"</span>): <span class="kw">continue</span>
+
+        <span class="kw">if</span> self._pool_anchor_block <span class="kw">is None</span>:
+            self._pool_anchor_block = block    <span class="cm"># record where POOL "belongs"</span>
+
+        <span class="kw">if</span> token <span class="kw">in</span> self.pool_block_symtab <span class="kw">or</span> token <span class="kw">in</span> self._pending_literals_set:
+            <span class="kw">continue</span>                           <span class="cm"># already seen — skip duplicate</span>
+
+        self._pending_literals.append(token)
+        self._pending_literals_set.add(token)
+
+<span class="kw">def</span> <span class="fn">_flush_literal_pool</span>(self, line_no: <span class="tp">int</span>) -> <span class="kw">None</span>:
+    <span class="kw">for</span> literal <span class="kw">in</span> self._pending_literals:
+        self.pool_block_symtab[literal] = self.pool_block_loc
+        self.pool_block_loc += self._literal_size(literal, self.pool_block_loc, line_no)
+    self._pending_literals.clear()
+    self._pending_literals_set.clear()</div>
+      <div class="explain-pane">
+        <ul class="line-list">
+          <li>
+            <div class="line-num">operand.split(",")</div>
+            <div class="exp-text">Splits on comma to handle multiple operands like <span class="hly">&X'10',&X'20'</span> in one field. Each sub-token is checked independently.</div>
+          </li>
+          <li>
+            <div class="line-num">startswith("&")</div>
+            <div class="exp-text">Only tokens beginning with <span class="hly">&</span> are POOL literals. Regular operands are ignored here.</div>
+          </li>
+          <li>
+            <div class="line-num">_pool_anchor_block</div>
+            <div class="exp-text">Set only once — the first time a <span class="hly">&</span> is encountered. Stores the currently active block. Per the spec, this determines where in memory the POOL block is positioned relative to the other blocks.</div>
+          </li>
+          <li>
+            <div class="line-num">Duplicate check</div>
+            <div class="exp-text">Checks both <span class="hl">pool_block_symtab</span> (already flushed) AND <span class="hl">_pending_literals_set</span> (waiting to flush). If <span class="hly">&X'10'</span> appears twice in the source, it gets only one POOL entry — same address reused.</div>
+          </li>
+          <li>
+            <div class="line-num">_pending vs symtab</div>
+            <div class="exp-text">Literals accumulate in <span class="hl">_pending_literals</span> during parsing. They are only committed to <span class="hl">pool_block_symtab</span> when <span class="hlg">_flush_literal_pool</span> is called. The flush happens at <span class="hly">END</span> directive (or at end of file as a fallback).</div>
+          </li>
+          <li>
+            <div class="line-num">flush — assign LC then advance</div>
+            <div class="exp-text">For each pending literal: first record its address (<span class="hl">pool_block_symtab[literal] = pool_block_loc</span>), then advance the POOL LC by the literal's byte size. Order matters — the assignment must happen before the advance.</div>
+          </li>
+          <li>
+            <div class="line-num">.clear()</div>
+            <div class="exp-text">After flushing, both the list and set are cleared. This allows <span class="hlg">_flush_literal_pool</span> to be called multiple times safely (e.g. at each LTORG if you had one, or just once at END).</div>
+          </li>
+        </ul>
+        <div class="callout callout-tip">
+          <div class="callout-icon">💡</div>
+          <div><strong>Why pending + set?</strong> The list preserves order (so PoolTable.txt output is deterministic). The set gives O(1) duplicate detection. If you only used the list, you'd need O(n) linear scan for every new literal — slow for large programs.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- START directive -->
+  <div class="section" id="p1-start">
+    <div class="section-badge badge-p1">pass_one.py · lines 339–367</div>
+    <div class="section-title">START directive handling</div>
+
+    <div class="explain-block">
+      <div class="explain-header" onclick="toggle(this)">
+        <span>🚀</span> _is_start_directive & _handle_start_directive
+        <span class="chevron">▼</span>
+      </div>
+      <div class="code-pane"><span class="kw">def</span> <span class="fn">_is_start_directive</span>(self, instruction) -> <span class="tp">bool</span>:
+    <span class="kw">return</span> (
+        isinstance(instruction, <span class="cls">DirectiveInstruction</span>)
+        <span class="kw">and</span> instruction.directive.upper() == <span class="str">"START"</span>
+    )
+
+<span class="kw">def</span> <span class="fn">_handle_start_directive</span>(self, instruction, line_no) -> <span class="cls">MemoryBlock</span>:
+    start_value = <span class="num">0</span>
+    <span class="kw">if</span> instruction.operand <span class="kw">is not None</span>:
+        start_value = int(instruction.operand)
+
+    self.start_address = start_value
+    <span class="kw">if</span> instruction.label <span class="kw">is not None</span>:
+        self.program_name = instruction.label
+    self._set_block_loc(<span class="cls">MemoryBlock</span>.DEFAULT, start_value)
+    self._set_instruction_location(instruction, <span class="cls">MemoryBlock</span>.DEFAULT, start_value)
+
+    <span class="kw">if</span> instruction.label <span class="kw">is not None</span>:
+        self._add_symbol(instruction.label, <span class="cls">MemoryBlock</span>.DEFAULT, start_value, ...)
+
+    <span class="kw">return</span> <span class="cls">MemoryBlock</span>.DEFAULT</div>
+      <div class="explain-pane">
+        <ul class="line-list">
+          <li>
+            <div class="line-num">isinstance check</div>
+            <div class="exp-text">Ensures the instruction is actually a <span class="hl">DirectiveInstruction</span> (not a machine instruction that happens to have "START" as a mnemonic, which can't happen but is defensive). Then checks the directive name.</div>
+          </li>
+          <li>
+            <div class="line-num">int(instruction.operand)</div>
+            <div class="exp-text">The START operand is the starting address — parsed as an integer. Note: this uses base-10 <span class="hl">int()</span>, not <span class="hl">int(..., 16)</span>. If your spec has hex start addresses, this would need to change to <span class="hl">int(operand, 16)</span>.</div>
+          </li>
+          <li>
+            <div class="line-num">program_name = label</div>
+            <div class="exp-text">The label on the START line becomes the program name — used in the H record of HTME output: <span class="hly">H^PROGNAME^start^length</span>.</div>
+          </li>
+          <li>
+            <div class="line-num">_set_block_loc DEFAULT</div>
+            <div class="exp-text">Sets the DEFAULT block's LC to the start address. All subsequent DEFAULT instructions will begin counting from here.</div>
+          </li>
+          <li>
+            <div class="line-num">_add_symbol(label)</div>
+            <div class="exp-text">The program name label is added to the symbol table pointing to the start address. This allows <span class="hly">END PROGNAME</span> to resolve correctly in Pass 2.</div>
+          </li>
+          <li>
+            <div class="line-num">return DEFAULT</div>
+            <div class="exp-text">Returns <span class="hl">MemoryBlock.DEFAULT</span> so the main loop knows the current block is DEFAULT after START is processed.</div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Directive processing -->
+  <div class="section" id="p1-directive">
+    <div class="section-badge badge-p1">pass_one.py · lines 369–416</div>
+    <div class="section-title">_process_directive_pass_one() — all directives handled</div>
+
+    <div class="explain-block">
+      <div class="explain-header" onclick="toggle(this)">
+        <span>📋</span> Full directive dispatch logic
+        <span class="chevron">▼</span>
+      </div>
+      <div class="code-pane"><span class="kw">def</span> <span class="fn">_process_directive_pass_one</span>(self, instruction, block_for_line,
+                                        line_loc, line_no, current_block):
+    directive = instruction.directive.upper()
+
+    <span class="kw">if</span> instruction.label <span class="kw">is not None</span>:
+        self._add_symbol(instruction.label, block_for_line, line_loc, ...)
+
+    self._collect_literals(instruction.operand, block_for_line)
+
+    <span class="kw">if</span>   directive == <span class="str">"USE"</span>:  <span class="kw">return</span> self._resolve_use_block(instruction.operand, ...)
+    <span class="kw">elif</span> directive == <span class="str">"WORD"</span>: self._set_block_loc(block_for_line, line_loc + <span class="num">3</span>)
+    <span class="kw">elif</span> directive == <span class="str">"RESW"</span>:
+        words = self._parse_required_non_negative_operand(...)
+        self._set_block_loc(block_for_line, line_loc + (<span class="num">3</span> * words))
+    <span class="kw">elif</span> directive == <span class="str">"RESB"</span>:
+        bytes_count = self._parse_required_non_negative_operand(...)
+        self._set_block_loc(block_for_line, line_loc + bytes_count)
+    <span class="kw">elif</span> directive == <span class="str">"BYTE"</span>:
+        byte_size = self._byte_operand_size(instruction.operand, ...)
+        self._set_block_loc(block_for_line, line_loc + byte_size)
+    <span class="kw">elif</span> directive == <span class="str">"END"</span>:
+        self._flush_literal_pool(line_no)
+
+    <span class="kw">return</span> current_block</div>
+      <div class="explain-pane">
+        <ul class="line-list">
+          <li>
+            <div class="line-num">directive.upper()</div>
+            <div class="exp-text">Normalises directive name to uppercase. All comparisons below use uppercase strings, so both <span class="hly">WORD</span> and <span class="hly">word</span> in source will match.</div>
+          </li>
+          <li>
+            <div class="line-num">Label registration first</div>
+            <div class="exp-text">If the directive has a label (e.g. <span class="hly">BUFFER RESB 256</span>), that label is added to the symbol table at the <em>current</em> LC <em>before</em> advancing the LC. The label points to the <em>start</em> of the reserved area.</div>
+          </li>
+          <li>
+            <div class="line-num">_collect_literals always</div>
+            <div class="exp-text">Even directives can have <span class="hly">&</span>-prefixed operands (edge case). Calling <span class="hlg">_collect_literals</span> here ensures those are captured regardless of which directive it is.</div>
+          </li>
+          <li>
+            <div class="line-num">USE returns new block</div>
+            <div class="exp-text">USE is the only directive that changes the active block, so it returns the new <span class="hl">MemoryBlock</span> value. All other directives return <span class="hl">current_block</span> unchanged (the block stays the same).</div>
+          </li>
+          <li>
+            <div class="line-num">WORD → +3</div>
+            <div class="exp-text">WORD always reserves exactly 3 bytes (one SIC/XE word). LC advances by 3.</div>
+          </li>
+          <li>
+            <div class="line-num">RESW → 3 × n</div>
+            <div class="exp-text">RESW n reserves n words = 3n bytes. No object code is generated — this just advances the LC to mark the space as occupied.</div>
+          </li>
+          <li>
+            <div class="line-num">RESB → n</div>
+            <div class="exp-text">RESB n reserves n bytes. Operand is validated to be a non-negative integer.</div>
+          </li>
+          <li>
+            <div class="line-num">BYTE → _byte_operand_size</div>
+            <div class="exp-text">Size depends on the operand format (C' vs X') so delegated to <span class="hlg">_byte_operand_size()</span>.</div>
+          </li>
+          <li>
+            <div class="line-num">END → flush pool</div>
+            <div class="exp-text">When END is encountered, all pending literals are finally committed to the POOL block symtab via <span class="hlg">_flush_literal_pool()</span>. This is the main flush trigger.</div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Machine instructions -->
+  <div class="section" id="p1-machine">
+    <div class="section-badge badge-p1">pass_one.py · lines 418–430</div>
+    <div class="section-title">_process_machine_instruction_pass_one()</div>
+
+    <div class="explain-block">
+      <div class="explain-header" onclick="toggle(this)">
+        <span>⚡</span> Machine instruction processing
+        <span class="chevron">▼</span>
+      </div>
+      <div class="code-pane"><span class="kw">def</span> <span class="fn">_process_machine_instruction_pass_one</span>(
+    self, instruction, block_for_line, line_loc, line_no
+) -> <span class="kw">None</span>:
+    label, operand = self._get_instruction_label_operand(instruction)
+
+    <span class="kw">if</span> label <span class="kw">is not None</span>:
+        self._add_symbol(label, block_for_line, line_loc, line_loc, line_no)
+
+    self._collect_literals(operand, block_for_line)
+    self._set_block_loc(block_for_line, line_loc + instruction.size)</div>
+      <div class="explain-pane">
+        <ul class="line-list">
+          <li>
+            <div class="line-num">_get_instruction_label_operand</div>
+            <div class="exp-text">Uses <span class="hl">getattr(..., None)</span> to safely read <span class="hlg">label</span> and <span class="hlg">operand</span> attributes. Format 1 instructions have no operand — <span class="hl">getattr</span> prevents AttributeError if the attribute doesn't exist.</div>
+          </li>
+          <li>
+            <div class="line-num">Add label to symtab</div>
+            <div class="exp-text">Records the label → current LC in the block's symbol table. The LC value recorded is <span class="hlg">line_loc</span> (before advancing) — the label points to the start of its instruction.</div>
+          </li>
+          <li>
+            <div class="line-num">_collect_literals(operand)</div>
+            <div class="exp-text">Checks if the operand is a <span class="hly">&</span>-prefixed literal and if so, queues it for the POOL.</div>
+          </li>
+          <li>
+            <div class="line-num">instruction.size</div>
+            <div class="exp-text">Each instruction object knows its own size: Format1=1, Format2=2, Format3=3, Format4=4. The LC advances by that amount. This is set when the instruction object is created in <span class="hlg">_parse_instruction()</span>.</div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- _parse_instruction -->
+  <div class="section" id="p1-parse">
+    <div class="section-badge badge-p1">pass_one.py · lines 432–518</div>
+    <div class="section-title">_parse_instruction() — the critical ambiguity resolver</div>
+    <div class="section-intro">This is one of the most important methods. Assembly lines are ambiguous — "ALPHA LDA" could mean label=ALPHA mnemonic=LDA, or mnemonic=ALPHA operand=LDA. This method resolves that ambiguity.</div>
+
+    <div class="explain-block">
+      <div class="explain-header" onclick="toggle(this)">
+        <span>🧩</span> Full parse logic
+        <span class="chevron">▼</span>
+      </div>
+      <div class="code-pane"><span class="kw">def</span> <span class="fn">_parse_instruction</span>(self, line: <span class="cls">ParsedLine</span>, current_block_loc=<span class="num">0</span>):
+    <span class="kw">if</span> line.number_of_parts == <span class="num">1</span>:
+        mnemonic = line.first             <span class="cm"># e.g. RSUB (no label, no operand)</span>
+
+    <span class="kw">elif</span> line.number_of_parts == <span class="num">2</span>:
+        <span class="kw">if</span> is_supported(line.first):      <span class="cm"># e.g. LDA ALPHA → mnemonic+operand</span>
+            mnemonic = line.first
+            operand  = line.second
+        <span class="kw">elif</span> is_supported(line.second):   <span class="cm"># e.g. ALPHA LDA → label+mnemonic</span>
+            label    = line.first
+            mnemonic = line.second
+        <span class="kw">else</span>:
+            <span class="kw">raise</span> <span class="cls">InvalidMnemonicOrDirective</span>(...)
+
+    <span class="kw">else</span>:                                 <span class="cm"># 3 parts: label + mnemonic + operand</span>
+        label    = line.first
+        mnemonic = line.second
+        operand  = line.third
+
+    <span class="cm"># Format detection + object construction</span>
+    <span class="kw">if</span> is_format4(mnemonic):
+        <span class="kw">return</span> <span class="cls">Format4Instruction</span>(..., size=<span class="num">4</span>)
+    <span class="kw">if</span> opcode_info.fmt == InstructionFormat.FORMAT_1:
+        <span class="kw">return</span> <span class="cls">Format1Instruction</span>(..., size=<span class="num">1</span>)
+    <span class="kw">if</span> opcode_info.fmt == InstructionFormat.FORMAT_2:
+        <span class="kw">return</span> <span class="cls">Format2Instruction</span>(..., size=<span class="num">2</span>)
+    <span class="kw">if</span> opcode_info.fmt == InstructionFormat.FORMAT_3:
+        <span class="kw">return</span> <span class="cls">Format3Instruction</span>(..., size=<span class="num">3</span>)</div>
+      <div class="explain-pane">
+        <ul class="line-list">
+          <li>
+            <div class="line-num">number_of_parts</div>
+            <div class="exp-text">Uses the <span class="hl">number_of_parts</span> property from <span class="hl">ParsedLine</span> to decide which parsing path to take. 1 part = mnemonic only. 2 parts = ambiguous. 3 parts = always label+mnemonic+operand.</div>
+          </li>
+          <li>
+            <div class="line-num">is_supported()</div>
+            <div class="exp-text">The key disambiguation function. It checks whether a string matches any known opcode or directive. If <span class="hl">line.first</span> is a known opcode (e.g. <span class="hly">LDA</span>), then line.first is the mnemonic, not a label.</div>
+          </li>
+          <li>
+            <div class="line-num">2-part ambiguity</div>
+            <div class="exp-text">A two-token line could be either <span class="hly">MNEMONIC OPERAND</span> (e.g. <span class="hly">LDA ALPHA</span>) or <span class="hly">LABEL MNEMONIC</span> (e.g. <span class="hly">ALPHA RSUB</span>). <span class="hl">is_supported</span> is called on the first token first. If it's not a known opcode, the second token must be the mnemonic.</div>
+          </li>
+          <li>
+            <div class="line-num">is_format4()</div>
+            <div class="exp-text">Checks if the mnemonic starts with <span class="hly">+</span> (e.g. <span class="hly">+JSUB</span>). Format 4 instructions are always 4 bytes regardless of what the OPTAB says for the base mnemonic.</div>
+          </li>
+          <li>
+            <div class="line-num">Format objects</div>
+            <div class="exp-text">Each format gets its own class: <span class="hl">Format1Instruction</span> (size=1), <span class="hl">Format2Instruction</span> (size=2), <span class="hl">Format3Instruction</span> (size=3), <span class="hl">Format4Instruction</span> (size=4). The size is baked in at construction so the rest of Pass 1 just reads <span class="hl">instruction.size</span> without caring about format.</div>
+          </li>
+        </ul>
+        <div class="callout callout-warn">
+          <div class="callout-icon">⚠️</div>
+          <div><strong>TA likely question:</strong> "How do you know if the first token on a line is a label or a mnemonic?" Answer: you call <span class="hl">is_supported()</span> on it — if it's in the opcode/directive table, it's a mnemonic. If not, it must be a label.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- process_pass_one main loop -->
+  <div class="section" id="p1-main">
+    <div class="section-badge badge-p1">pass_one.py · lines 520–559</div>
+    <div class="section-title">process_pass_one() — the main loop</div>
+    <div class="section-intro">This is the entry point that orchestrates everything. It loops over every ParsedLine and routes it to the correct handler.</div>
+
+    <div class="explain-block">
+      <div class="explain-header" onclick="toggle(this)">
+        <span>🔄</span> Main loop complete walkthrough
+        <span class="chevron">▼</span>
+      </div>
+      <div class="code-pane"><span class="kw">def</span> <span class="fn">process_pass_one</span>(self, parsed_lines: <span class="tp">list</span>[<span class="cls">ParsedLine</span>]) -> <span class="kw">None</span>:
+    current_block = <span class="cls">MemoryBlock</span>.DEFAULT
+
+    <span class="kw">for</span> line <span class="kw">in</span> parsed_lines:
+        current_block_loc = self._get_block_loc(current_block)
+        instruction = self._parse_instruction(line, current_block_loc)
+
+        <span class="kw">if</span> self._is_start_directive(instruction):
+            current_block = self._handle_start_directive(
+                cast(<span class="cls">DirectiveInstruction</span>, instruction), line.line_no
+            )
+            self.instructions.append(instruction)
+            <span class="kw">continue</span>
+
+        block_for_line = current_block
+        line_loc = self._get_block_loc(block_for_line)
+        self._set_instruction_location(instruction, block_for_line, line_loc)
+
+        <span class="kw">if</span> isinstance(instruction, <span class="cls">DirectiveInstruction</span>):
+            current_block = self._process_directive_pass_one(...)
+        <span class="kw">else</span>:
+            self._process_machine_instruction_pass_one(...)
+
+        self.instructions.append(instruction)
+
+    <span class="kw">if</span> self._pending_literals:
+        fallback_line_no = parsed_lines[-<span class="num">1</span>].line_no <span class="kw">if</span> parsed_lines <span class="kw">else</span> <span class="num">0</span>
+        self._flush_literal_pool(fallback_line_no)</div>
+      <div class="explain-pane">
+        <ul class="line-list">
+          <li>
+            <div class="line-num">current_block</div>
+            <div class="exp-text">The loop variable tracking which block is currently active. Starts as <span class="hl">MemoryBlock.DEFAULT</span>. Updated whenever a <span class="hly">USE</span> directive is processed. All LC reads and writes use this variable.</div>
+          </li>
+          <li>
+            <div class="line-num">_get_block_loc(current_block)</div>
+            <div class="exp-text">Gets the LC of the current block <em>before</em> processing the line. This LC becomes the instruction's location counter value.</div>
+          </li>
+          <li>
+            <div class="line-num">_parse_instruction()</div>
+            <div class="exp-text">Converts the raw <span class="hl">ParsedLine</span> tokens into a typed <span class="hl">AssemblyInstruction</span> object with known size and format. If the mnemonic is unrecognised, this raises <span class="hlr">InvalidMnemonicOrDirective</span>.</div>
+          </li>
+          <li>
+            <div class="line-num">START handled separately</div>
+            <div class="exp-text">START is special — it must set the DEFAULT LC before anything else is processed. It's checked first and handled with <span class="hlg">_handle_start_directive</span>, then <span class="hl">continue</span> skips the rest of the loop body for that line.</div>
+          </li>
+          <li>
+            <div class="line-num">cast(DirectiveInstruction)</div>
+            <div class="exp-text"><span class="hl">cast()</span> from the <span class="hl">typing</span> module is purely for type-checking tools (like mypy). It doesn't change runtime behaviour. It tells the type checker "I know this is a DirectiveInstruction" so it doesn't complain about the attribute access.</div>
+          </li>
+          <li>
+            <div class="line-num">_set_instruction_location</div>
+            <div class="exp-text">Stamps the instruction object with its block and LC. This permanently records where in memory this instruction lives — used later by Pass 2 and the intermediate file export.</div>
+          </li>
+          <li>
+            <div class="line-num">isinstance check</div>
+            <div class="exp-text">Dispatches to either <span class="hlg">_process_directive_pass_one</span> or <span class="hlg">_process_machine_instruction_pass_one</span>. Directives need extra handling (USE switches block, WORD/RESW/RESB advance LC differently). Machine instructions all follow the same pattern.</div>
+          </li>
+          <li>
+            <div class="line-num">fallback flush</div>
+            <div class="exp-text">After the loop, if any literals are still pending (i.e. the file had no <span class="hly">END</span> directive), they are flushed anyway. This prevents pool entries from being silently lost if the source is malformed.</div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Export methods -->
+  <div class="section" id="p1-export">
+    <div class="section-badge badge-p1">pass_one.py · lines 561–629</div>
+    <div class="section-title">Export methods — symbTable, poolTable, intermediate</div>
+
+    <div class="explain-block">
+      <div class="explain-header" onclick="toggle(this)">
+        <span>📤</span> All three export methods
+        <span class="chevron">▼</span>
+      </div>
+      <div class="code-pane"><span class="kw">def</span> <span class="fn">export_symbol_table</span>(self, output_path: <span class="tp">str</span>) -> <span class="kw">None</span>:
+    rows = []
+    <span class="kw">for</span> block <span class="kw">in</span> self._USER_BLOCKS:
+        <span class="kw">for</span> symbol, loc <span class="kw">in</span> self._block_symtab(block).items():
+            rows.append((symbol, block.value, loc))
+    <span class="kw">with</span> open(output_path, <span class="str">"w"</span>, encoding=<span class="str">"utf-8"</span>) <span class="kw">as</span> f:
+        f.write(<span class="str">f"{'Symbol':<12}{'Block':<10}{'LC (HEX)':<10}{'LC (DEC)'}\n"</span>)
+        f.write(<span class="str">"-"</span> * <span class="num">42</span> + <span class="str">"\n"</span>)
+        <span class="kw">for</span> symbol, block_name, loc <span class="kw">in</span> rows:
+            f.write(<span class="str">f"{symbol:<12}{block_name:<10}{loc:04X}{loc:>10}\n"</span>)
+
+<span class="kw">def</span> <span class="fn">export_pool_table</span>(self, output_path: <span class="tp">str</span>) -> <span class="kw">None</span>:
+    <span class="kw">if</span> self._pending_literals:
+        self._flush_literal_pool(<span class="num">0</span>)   <span class="cm"># safety flush</span>
+    <span class="kw">with</span> open(output_path, <span class="str">"w"</span>, encoding=<span class="str">"utf-8"</span>) <span class="kw">as</span> f:
+        <span class="kw">for</span> literal, loc <span class="kw">in</span> self.pool_block_symtab.items():
+            f.write(<span class="str">f"{literal:<12}{loc:04X}{loc:>10}\n"</span>)
+
+<span class="kw">@property</span>
+<span class="kw">def</span> <span class="fn">block_locs</span>(self) -> <span class="tp">dict</span>[<span class="cls">MemoryBlock</span>, <span class="tp">int</span>]:
+    <span class="kw">return</span> {block: self._get_block_loc(block) <span class="kw">for</span> block <span class="kw">in</span> (*self._USER_BLOCKS, <span class="cls">MemoryBlock</span>.POOL)}</div>
+      <div class="explain-pane">
+        <ul class="line-list">
+          <li>
+            <div class="line-num">_USER_BLOCKS only</div>
+            <div class="exp-text"><span class="hl">export_symbol_table</span> iterates <span class="hl">_USER_BLOCKS</span> — that's DEFAULT, DEFAULTB, CDATA, CBLKS. The POOL block is <em>not</em> included here because POOL has its own separate <span class="hlg">export_pool_table</span> method, keeping the two outputs distinct as required by the spec.</div>
+          </li>
+          <li>
+            <div class="line-num">loc:04X</div>
+            <div class="exp-text"><span class="hl">{loc:04X}</span> formats the integer as hexadecimal, uppercase, minimum 4 digits wide, zero-padded. So address 255 → <span class="hly">00FF</span>. This is the standard LC representation in SIC/XE assembler output.</div>
+          </li>
+          <li>
+            <div class="line-num">loc:>10</div>
+            <div class="exp-text"><span class="hl">{loc:>10}</span> formats as right-aligned decimal in 10 characters. The table shows both hex and decimal LC values side-by-side for debugging convenience.</div>
+          </li>
+          <li>
+            <div class="line-num">safety flush</div>
+            <div class="exp-text"><span class="hl">export_pool_table</span> calls <span class="hlg">_flush_literal_pool(0)</span> if there are still pending literals. This is a defensive measure — if someone calls export without having run the full pass, it still produces correct output.</div>
+          </li>
+          <li>
+            <div class="line-num">block_locs property</div>
+            <div class="exp-text">A read-only property that returns a snapshot dict of all block LCs. Used by Pass 2 to know the final LC of each block (which determines total block sizes and memory layout). The dict comprehension builds it cleanly in one line.</div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Final summary -->
+  <div class="section">
+    <div class="section-badge badge-arch">Summary</div>
+    <div class="section-title">How they connect — the full picture</div>
+    <div class="flow-diagram" style="flex-direction:column;align-items:flex-start;gap:.5rem;">
+      <div style="display:flex;align-items:center;gap:.5rem;">
+        <div class="flow-box" style="background:rgba(124,91,245,.1);border-color:rgba(124,91,245,.3);">in.txt</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box" style="background:rgba(124,91,245,.1);border-color:rgba(124,91,245,.3);">Preprocessor.process()<br><span style="font-size:10px;color:var(--muted)">strips comments, builds ParsedLine list</span></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:.5rem;">
+        <div class="flow-box" style="background:rgba(91,138,245,.1);border-color:rgba(91,138,245,.3);">list[ParsedLine]</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box" style="background:rgba(91,138,245,.1);border-color:rgba(91,138,245,.3);">AssemblerPassOne.process_pass_one()<br><span style="font-size:10px;color:var(--muted)">_parse_instruction → directive or machine handler → LC advance</span></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
+        <div class="flow-box" style="background:rgba(245,200,66,.1);border-color:rgba(245,200,66,.3);">symbTable.txt</div>
+        <div class="flow-arrow">+</div>
+        <div class="flow-box" style="background:rgba(245,200,66,.1);border-color:rgba(245,200,66,.3);">PoolTable.txt</div>
+        <div class="flow-arrow">+</div>
+        <div class="flow-box" style="background:rgba(245,200,66,.1);border-color:rgba(245,200,66,.3);">intermediate.txt</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box" style="background:rgba(45,212,191,.1);border-color:rgba(45,212,191,.3);">Pass 2</div>
+      </div>
+    </div>
+    <div class="callout callout-tip" style="margin-top:1rem;">
+      <div class="callout-icon">✅</div>
+      <div><strong>Key things to say to your TA:</strong> (1) The Preprocessor's only job is cleaning — it knows nothing about SIC/XE semantics. (2) Pass 1's only job is address assignment — it never generates object code. (3) The POOL block is never explicitly switched to; it grows automatically as &-operands are encountered. (4) Symbols are globally unique across all blocks. (5) _flush_literal_pool is triggered by END, not by USE switches.</div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<script>
+function toggle(header) {
+  header.classList.toggle('open');
+  const pane = header.nextElementSibling.nextElementSibling;
+  if (pane) pane.classList.toggle('open');
+}
+
+function expandAll() {
+  document.querySelectorAll('.explain-header').forEach(h => {
+    h.classList.add('open');
+    const pane = h.nextElementSibling.nextElementSibling;
+    if (pane) pane.classList.add('open');
+  });
+}
+
+function scrollTo(id) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+// Highlight active nav on scroll
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const id = e.target.id;
+      document.querySelectorAll('.nav-item').forEach(n => {
+        n.classList.toggle('active', n.getAttribute('onclick')?.includes(id));
+      });
+    }
+  });
+}, { threshold: 0.3 });
+document.querySelectorAll('.section[id]').forEach(s => observer.observe(s));
+</script>
+</body>
+</html>

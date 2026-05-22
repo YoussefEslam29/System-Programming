@@ -1,0 +1,24 @@
+Location counter  Symbol   Instructions  Reference
+----------------  -------  ------------  ----------
+0000              COPY     START         0
+0000              FIRST    CLEAR         X
+0002                       CLEAR         A
+                           USE           DEFAULTB
+0000                       LDA           #0
+0003                       LDB           #BASEVAL
+0006                       BASE          BASEVAL
+0006                       LDA           ALPHA
+0009                       ADD           &C'EOF'
+000C                       STA           BETA
+000F                       LDA           @GAMMA
+0012                       +LDX          ALPHA
+0016                       ADD           &X'0F'
+0019                       STCH          GAMMA,X
+001C                       RSUB
+                           USE           CDATA
+0000              ALPHA    WORD          5
+0003              BETA     RESW          1
+0006              BASEVAL  WORD          4096
+                           USE           CBLKS
+0000              GAMMA    RESB          5376
+1500                       END           FIRST

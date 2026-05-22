@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIC/XE Assembler Project — Code Explanation (Simplified pass_one.py)</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Highlight.js for beautiful code blocks -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+
+    <!-- Mermaid.js for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #3730a3;
+            --text-main: #1f2937;
+            --text-muted: #4b5563;
+            --bg-main: #f9fafb;
+            --border-color: #e5e7eb;
+            --code-bg: #f3f4f6;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: var(--text-main);
+            background-color: var(--bg-main);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 40px 50px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+            border-radius: 8px;
+            margin-top: 30px;
+            margin-bottom: 50px;
+        }
+
+        /* Print Button */
+        .print-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(79,70,229,0.3);
+            z-index: 1000;
+            transition: all 0.2s ease;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .print-btn:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 14px rgba(79,70,229,0.4);
+        }
+        .print-btn svg { width: 18px; height: 18px; fill: currentColor; }
+
+        h1, h2, h3, h4 {
+            color: #111827;
+            font-weight: 700;
+            margin-top: 1.8em;
+            margin-bottom: 0.6em;
+        }
+        h1 { font-size: 2.25rem; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; margin-top: 0; }
+        h2 { font-size: 1.6rem; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
+        h3 { font-size: 1.25rem; }
+
+        p { margin-bottom: 1.2em; color: var(--text-main); }
+
+        a { color: var(--primary); text-decoration: none; font-weight: 500; }
+        a:hover { text-decoration: underline; }
+
+        pre {
+            background-color: var(--code-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 16px;
+            overflow-x: auto;
+            margin: 1.5em 0;
+        }
+        code {
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 0.9em;
+            background-color: var(--code-bg);
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #c026d3;
+        }
+        pre code {
+            background-color: transparent;
+            padding: 0;
+            border-radius: 0;
+            color: inherit;
+            display: block;
+            line-height: 1.5;
+        }
+
+        ul, ol { margin-bottom: 1.5em; padding-left: 24px; }
+        li { margin-bottom: 0.5em; }
+
+        table { width: 100%; border-collapse: collapse; margin: 2em 0; font-size: 0.95rem; }
+        th, td { border: 1px solid var(--border-color); padding: 10px 14px; text-align: left; }
+        th { background-color: #f8fafc; font-weight: 600; color: #334155; }
+        tr:nth-child(even) { background-color: #f8fafc; }
+
+        blockquote.alert { border-left: 4px solid #cbd5e1; background-color: #f8fafc; padding: 16px 20px; margin: 1.5em 0; border-radius: 0 6px 6px 0; }
+        blockquote.alert p { margin: 0; }
+        blockquote.alert-tip   { border-left-color: #10b981; background-color: #ecfdf5; }
+        blockquote.alert-important { border-left-color: #8b5cf6; background-color: #f5f3ff; }
+        blockquote.alert-note  { border-left-color: #3b82f6; background-color: #eff6ff; }
+        blockquote.alert-warning { border-left-color: #f59e0b; background-color: #fffbeb; }
+        blockquote.alert-caution { border-left-color: #ef4444; background-color: #fef2f2; }
+
+        .alert-title { font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; font-size: 0.95rem; }
+        .alert-tip .alert-title       { color: #047857; }
+        .alert-important .alert-title { color: #6d28d9; }
+        .alert-note .alert-title      { color: #1d4ed8; }
+        .alert-warning .alert-title   { color: #b45309; }
+        .alert-caution .alert-title   { color: #b91c1c; }
+
+        .mermaid { display: flex; justify-content: center; margin: 2em 0; padding: 15px; background: #f8fafc; border: 1px solid var(--border-color); border-radius: 6px; }
+
+        hr { border: 0; height: 1px; background: var(--border-color); margin: 2.5em 0; }
+
+        .badge {
+            display: inline-block;
+            background: #e0e7ff;
+            color: #3730a3;
+            border-radius: 4px;
+            padding: 2px 8px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+        .badge-green { background: #d1fae5; color: #065f46; }
+        .badge-red   { background: #fee2e2; color: #991b1b; }
+
+        @media print {
+            body { background-color: #fff; color: #000; font-size: 11pt; }
+            .container { box-shadow: none; padding: 0; margin-top: 0; margin-bottom: 0; max-width: 100%; }
+            .print-btn { display: none !important; }
+            pre, blockquote, table, tr, img, .mermaid { page-break-inside: avoid; }
+            h1, h2, h3 { page-break-after: avoid; }
+            @page { margin: 1.8cm 1.5cm; }
+        }
+    </style>
+</head>
+<body>
+
+<button class="print-btn" onclick="window.print()">
+    <svg viewBox="0 0 24 24"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
+    Print / Save to PDF
+</button>
+
+<div class="container">
+
+<h1>Detailed Code Explanation — <code>preprocessor.py</code> &amp; <code>pass_one.py</code> <span class="badge badge-green">Simplified</span></h1>
+
+<blockquote>
+<p>[!TIP]
+This document explains <strong>every single section</strong> of both files. The <code>pass_one.py</code> has been rewritten to be significantly simpler — <strong>629 lines → ~250 lines</strong> — while doing exactly the same thing. Read this before your TA discussion. Key TA questions are at the end.</p>
+</blockquote>
+
+<hr>
+
+<h2>Big Picture: How the Assembler Works</h2>
+
+<p>This project implements a <strong>two-pass SIC/XE assembler</strong> with <strong>program block support</strong>. The pipeline is:</p>
+
+<pre><code class="language-mermaid">graph LR
+    A["in.txt&lt;br/&gt;(SIC/XE source)"] --&gt; B["Preprocessor&lt;br/&gt;(tokenize)"]
+    B --&gt; C["Pass One&lt;br/&gt;(assign addresses,&lt;br/&gt;build SYMTAB)"]
+    C --&gt; D["Pass Two&lt;br/&gt;(generate object code,&lt;br/&gt;HTME records)"]
+</code></pre>
+
+<ol>
+<li><strong>Preprocessor</strong> — reads raw text, strips comments, splits each line into tokens (label, mnemonic, operand)</li>
+<li><strong>Pass One</strong> — walks through tokens, assigns a location counter (address) to every instruction, builds the <strong>symbol table</strong> (SYMTAB) and <strong>literal pool</strong></li>
+<li><strong>Pass Two</strong> — uses the symbol table from Pass One to generate actual machine object code</li>
+</ol>
+
+<hr>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h1>Part 1: <code>preprocessor.py</code> — The Tokenizer</h1>
+<p><a href="file:///d:/1%29%20colloge/3%29%20TERM%206/SYSTEM%20PRO/System%20Programming/project/SYSTEMS%20PROJECT%20HESAHM/src/preprocessor.py">Full file: preprocessor.py</a></p>
+
+<h2>1.1 Imports</h2>
+<pre><code class="language-python">from dataclasses import field, dataclass
+from typing import Optional
+</code></pre>
+<ul>
+<li><strong><code>dataclass</code></strong>: A Python decorator that auto-generates <code>__init__</code>, <code>__repr__</code>, etc. — saves boilerplate.</li>
+<li><strong><code>field</code></strong>: Lets you specify default values for dataclass fields.</li>
+<li><strong><code>Optional</code></strong>: Type hint meaning "this value can be <code>None</code>". <code>Optional[str]</code> = <code>str | None</code>.</li>
+</ul>
+
+<hr>
+
+<h2>1.2 The <code>ParsedLine</code> Data Class</h2>
+<pre><code class="language-python">@dataclass
+class ParsedLine:
+    line_no: int
+    first: str
+    second: Optional[str] = field(default=None)
+    third:  Optional[str] = field(default=None)
+</code></pre>
+<p><strong>What it is:</strong> A structured representation of one line of assembly code <strong>after tokenization</strong>.</p>
+
+<table>
+<thead><tr><th>Field</th><th>Type</th><th>Meaning</th><th>Example (<code>ALPHA&nbsp;&nbsp;WORD&nbsp;&nbsp;5</code>)</th></tr></thead>
+<tbody>
+<tr><td><code>line_no</code></td><td><code>int</code></td><td>Original line number in source file</td><td><code>16</code></td></tr>
+<tr><td><code>first</code></td><td><code>str</code></td><td>The first token — always present</td><td><code>"ALPHA"</code></td></tr>
+<tr><td><code>second</code></td><td><code>Optional[str]</code></td><td>Second token — may be <code>None</code></td><td><code>"WORD"</code></td></tr>
+<tr><td><code>third</code></td><td><code>Optional[str]</code></td><td>Third token — may be <code>None</code></td><td><code>"5"</code></td></tr>
+</tbody>
+</table>
+
+<p><strong>Why 3 fields?</strong> In SIC/XE assembly, a line has <strong>at most 3 parts</strong>:
+- <strong>1 part</strong>: Just a mnemonic → <code>RSUB</code>
+- <strong>2 parts</strong>: Mnemonic + operand → <code>LDA ALPHA</code>, or Label + mnemonic → <code>FIRST RSUB</code>
+- <strong>3 parts</strong>: Label + mnemonic + operand → <code>ALPHA WORD 5</code></p>
+
+<h3>The <code>number_of_parts</code> Property</h3>
+<pre><code class="language-python">@property
+def number_of_parts(self) -> int:
+    return (
+        (self.first  is not None)   # always 1
+      + (self.second is not None)   # 1 if present, else 0
+      + (self.third  is not None)   # 1 if present, else 0
+    )
+</code></pre>
+<p><strong>How it works:</strong> In Python, <code>True == 1</code> and <code>False == 0</code>. Adding three booleans gives 1, 2, or 3.</p>
+<p><strong>Why it's needed:</strong> Pass One uses <code>number_of_parts</code> to decide how to interpret the tokens — is the first token a label or a mnemonic?</p>
+
+<hr>
+
+<h2>1.3 The <code>Preprocessor</code> Class</h2>
+
+<h3>Constructor</h3>
+<pre><code class="language-python">class Preprocessor:
+    def __init__(self) -> None:
+        self.parsed_lines: list[ParsedLine] = []
+</code></pre>
+<p>Creates an empty list to store results. After calling <code>process()</code>, all results live here.</p>
+
+<hr>
+
+<h3>The <code>process()</code> Method — THE CORE</h3>
+<pre><code class="language-python">def process(self, input_lines: list[str]) -> list[ParsedLine]:
+    result = []
+    for i, line in enumerate(input_lines):
+</code></pre>
+<ul>
+<li><strong>Input:</strong> A list of raw strings (each string is one line from the <code>.txt</code> file).</li>
+<li><strong><code>enumerate(input_lines)</code>:</strong> Gives both the index <code>i</code> (line number) and the string <code>line</code>.</li>
+</ul>
+
+<h4>Step 1: Strip whitespace</h4>
+<pre><code class="language-python">        line = line.strip()
+</code></pre>
+<p>Removes leading/trailing spaces and newline characters (<code>\n</code>, <code>\r</code>).</p>
+
+<h4>Step 2: Handle comments</h4>
+<pre><code class="language-python">        if "." in line:
+            dot_idx = line.find(" .")
+            if dot_idx != -1:
+                line = line[:dot_idx]      # chop inline comment
+
+            if line.lstrip().startswith("."):
+                continue                    # full-line comment → skip
+</code></pre>
+<p>In SIC/XE, <strong><code>.</code> (dot) marks a comment</strong>.</p>
+<ul>
+<li><code>line.find(" .")</code> looks for a space then dot — catches <strong>inline comments</strong> like:<br>
+<code>LDA ALPHA  . load alpha into register A</code></li>
+<li>If the line starts with <code>.</code>, it's a <strong>full-line comment</strong> → skip it entirely.</li>
+</ul>
+
+<blockquote>
+<p>[!IMPORTANT]
+The order matters: first remove inline comments, THEN check if the remaining line is a pure comment.</p>
+</blockquote>
+
+<h4>Step 3: Split into tokens</h4>
+<pre><code class="language-python">        split_line = line.split()
+        if not split_line:
+            continue
+</code></pre>
+<p><code>line.split()</code> splits by any whitespace: <code>"ALPHA   WORD    5"</code> → <code>["ALPHA", "WORD", "5"]</code>. Empty results (blank lines) are skipped.</p>
+
+<h4>Step 4: Build a <code>ParsedLine</code></h4>
+<pre><code class="language-python">        new_parsed_line = ParsedLine(
+            line_no = i,
+            first   = split_line[0],
+            second  = split_line[1] if len(split_line) > 1 else None,
+            third   = split_line[2] if len(split_line) > 2 else None,
+        )
+        result.append(new_parsed_line)
+</code></pre>
+<p>Anything beyond 3 tokens is silently ignored — SIC/XE never needs more than 3 fields.</p>
+
+<h4>Step 5: Store and return</h4>
+<pre><code class="language-python">    self.parsed_lines = result
+    return result
+</code></pre>
+<p>Saves the parsed lines to <code>self.parsed_lines</code> (for later export) AND returns them directly.</p>
+
+<hr>
+
+<h3>The <code>export_to_file()</code> Method</h3>
+<pre><code class="language-python">def export_to_file(self, output_path: str) -> None:
+    header    = f"{'Line':<8}{'First':<12}{'Second':<12}{'Third'}"
+    separator = "-" * 45
+    try:
+        with open(output_path, "w") as f:
+            f.write(header + "\n")
+            f.write(separator + "\n")
+            for line in self.parsed_lines:
+                formatted_row = f"{str(line.line_no):<8}{line.first:<12}{line.second or '':<12}{line.third or ''}"
+                f.write(formatted_row.rstrip() + "\n")
+    except IOError as e:
+        print(f"Failed to write export file: {e}")
+</code></pre>
+<p><strong>Output looks like:</strong></p>
+<pre><code>Line    First       Second      Third
+---------------------------------------------
+0       COPY        START       0
+1       FIRST       CLEAR       X
+2                   CLEAR       A
+...
+</code></pre>
+
+<hr>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h1>Part 2: <code>pass_one.py</code> — First Pass of the Assembler <span class="badge badge-green">Simplified</span></h1>
+<p><a href="file:///d:/1%29%20colloge/3%29%20TERM%206/SYSTEM%20PRO/System%20Programming/project/SYSTEMS%20PROJECT%20HESAHM/src/assembler/pass_one.py">Full file: pass_one.py</a></p>
+
+<blockquote>
+<p>[!NOTE]
+This file was rewritten to be shorter and clearer. The biggest change: instead of 5 separate variables for location counters and 5 separate dicts for symbol tables (with 3 giant <code>match/case</code> blocks to access them), the new version uses <strong>two simple dictionaries</strong>: <code>self._locs</code> and <code>self._symtabs</code>.</p>
+</blockquote>
+
+<h2>2.1 What Pass One Does (Theory)</h2>
+<p>Pass One's job is to:</p>
+<ol>
+<li><strong>Assign an address (location counter) to every instruction</strong></li>
+<li><strong>Build the symbol table (SYMTAB)</strong> — mapping every label to its address</li>
+<li><strong>Handle program blocks</strong> (<code>USE</code> directive) — multiple memory regions</li>
+<li><strong>Collect literals</strong> (<code>&amp;C'EOF'</code>, <code>&amp;X'0F'</code>) into a literal pool</li>
+</ol>
+<p>It does <strong>NOT</strong> generate any machine code — that's Pass Two's job.</p>
+
+<hr>
+
+<h2>2.2 Imports</h2>
+<pre><code class="language-python">from typing import Optional, cast
+
+from instruction_set import (
+    MemoryBlock,        # Enum: DEFAULT, DEFAULTB, CDATA, CBLKS, POOL
+    InstructionFormat,  # Enum: FORMAT_1, FORMAT_2, FORMAT_3, FORMAT_4, DIRECTIVE
+    is_directive,       # True if token is a directive (START, END, BYTE, etc.)
+    is_supported,       # True if token is a valid opcode OR directive
+    is_format4,         # True if mnemonic starts with "+"
+    lookup_opcode,      # returns OpcodeInfo (opcode hex, format) for a mnemonic
+)
+from preprocessor import ParsedLine
+from assembler_errors import (
+    DuplicateSymbolError,           # label defined twice
+    InvalidDirectiveOperandError,   # bad directive operand (e.g., RESW -5)
+    InvalidMnemonicOrDirective,     # unrecognized instruction
+    UnidentifiedBlockNameError,     # invalid USE block name
+)
+from . import (                     # from assembler/__init__.py
+    AssemblyInstruction,            # base class for all instructions
+    DirectiveInstruction,           # START, END, BYTE, WORD, RESW, RESB, USE …
+    Format1Instruction,             # 1-byte instructions (e.g., FIX, FLOAT)
+    Format2Instruction,             # 2-byte instructions (e.g., CLEAR, ADDR)
+    Format3Instruction,             # 3-byte instructions (e.g., LDA, STA)
+    Format4Instruction,             # 4-byte instructions (e.g., +LDX)
+)
+</code></pre>
+
+<hr>
+
+<h2>2.3 Module-Level Constants <span class="badge badge-green">NEW — was class-level</span></h2>
+<pre><code class="language-python"># All five memory blocks (including the literal POOL)
+ALL_BLOCKS = (
+    MemoryBlock.DEFAULT,
+    MemoryBlock.DEFAULTB,
+    MemoryBlock.CDATA,
+    MemoryBlock.CBLKS,
+    MemoryBlock.POOL,
+)
+USER_BLOCKS = ALL_BLOCKS[:-1]                        # everything except POOL
+USE_BLOCK_MAP = {b.value: b for b in USER_BLOCKS}   # "DEFAULT" -> MemoryBlock.DEFAULT …
+</code></pre>
+
+<p><strong>Why module-level instead of class-level?</strong> These constants don't depend on any instance — they describe the language, not any particular assembler run. Putting them at module level makes them accessible anywhere without creating an object.</p>
+
+<table>
+<thead><tr><th>Constant</th><th>Value</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td><code>ALL_BLOCKS</code></td><td>Tuple of 5 blocks</td><td>Iterate over every block (including POOL)</td></tr>
+<tr><td><code>USER_BLOCKS</code></td><td>Tuple of 4 blocks</td><td>The blocks the programmer can USE (not POOL)</td></tr>
+<tr><td><code>USE_BLOCK_MAP</code></td><td>Dict string→MemoryBlock</td><td>Converts <code>"CDATA"</code> → <code>MemoryBlock.CDATA</code> instantly</td></tr>
+</tbody>
+</table>
+
+<blockquote>
+<p>[!TIP]
+<code>USE_BLOCK_MAP = {b.value: b for b in USER_BLOCKS}</code> is a dict comprehension. It loops over all user blocks and builds a dict where the key is the block's string value (e.g., <code>"CDATA"</code>) and the value is the block enum itself.</p>
+</blockquote>
+
+<hr>
+
+<h2>2.4 Constructor <code>__init__</code> <span class="badge badge-green">Simplified</span></h2>
+
+<pre><code class="language-python">class AssemblerPassOne:
+    def __init__(self) -> None:
+        # One dict holds ALL location counters (instead of 5 separate variables)
+        self._locs: dict[MemoryBlock, int] = {b: 0 for b in ALL_BLOCKS}
+
+        # One dict holds ALL symbol tables (instead of 5 separate dicts)
+        self._symtabs: dict[MemoryBlock, dict[str, int]] = {b: {} for b in ALL_BLOCKS}
+
+        self.instructions: list[AssemblyInstruction] = []
+        self.start_address = 0
+        self.program_name  = ""
+
+        # Literal pool tracking
+        self._pending_literals:     list[str] = []   # ordered list (insertion order matters)
+        self._pending_literals_set: set[str]  = set()# for O(1) duplicate checking
+        self._pool_anchor_block: Optional[MemoryBlock] = None
+</code></pre>
+
+<h3>The Key Simplification — Old vs New</h3>
+
+<table>
+<thead><tr><th>Old Code <span class="badge badge-red">629 lines</span></th><th>New Code <span class="badge badge-green">~250 lines</span></th></tr></thead>
+<tbody>
+<tr>
+<td><pre style="font-size:0.8em;margin:0">self.default_block_loc    = 0
+self.default_b_block_loc  = 0
+self.cdata_block_loc      = 0
+self.cblocks_block_loc    = 0
+self.pool_block_loc       = 0
+
+self.default_block_symtab   = {}
+self.default_b_block_symtab = {}
+self.cdata_block_symtab     = {}
+self.cblocks_block_symtab   = {}
+self.pool_block_symtab      = {}</pre></td>
+<td><pre style="font-size:0.8em;margin:0">self._locs = {b: 0 for b in ALL_BLOCKS}
+
+self._symtabs = {b: {} for b in ALL_BLOCKS}</pre></td>
+</tr>
+</tbody>
+</table>
+
+<p>The old code needed 3 giant <code>match/case</code> blocks just to read/write those 10 separate variables. With dictionaries you simply write <code>self._locs[block]</code> and <code>self._symtabs[block]</code> — no helpers needed.</p>
+
+<blockquote>
+<p>[!IMPORTANT]
+<strong>Why separate location counters per block?</strong> Each program block has its own independent address space. When you <code>USE CDATA</code>, the location counter for DEFAULT is "frozen" and the CDATA counter continues. When you <code>USE DEFAULT</code> again, you pick up where DEFAULT left off.</p>
+</blockquote>
+<blockquote>
+<p>[!NOTE]
+<strong>Why both a list AND a set for pending literals?</strong> The list preserves <strong>insertion order</strong> (so literals appear in the pool in the order they were first used). The set provides <strong>O(1) duplicate checking</strong> (so we don't add the same literal twice).</p>
+</blockquote>
+
+<hr>
+
+<h2>2.5 Symbol Table Helpers</h2>
+
+<h3><code>_lookup_symbol(symbol)</code></h3>
+<pre><code class="language-python">def _lookup_symbol(self, symbol: str) -> Optional[tuple[MemoryBlock, int]]:
+    """Search every block's symtab for `symbol`. Return (block, address) or None."""
+    for block in ALL_BLOCKS:
+        if symbol in self._symtabs[block]:
+            return block, self._symtabs[block][symbol]
+    return None
+</code></pre>
+<p><strong>Searches ALL five symbol tables</strong> for a symbol. Returns <code>(block, address)</code> if found, <code>None</code> otherwise.</p>
+<p><em>Note: the old code had two separate methods (<code>_lookup_symbol</code> returning just an int, and <code>_lookup_symbol_entry</code> returning the tuple). Now it's merged into one.</em></p>
+
+<h3><code>_add_symbol(symbol, block, value, program_counter, line_no)</code></h3>
+<pre><code class="language-python">def _add_symbol(self, symbol: str, block: MemoryBlock, value: int,
+                program_counter: int, line_no: int) -> None:
+    """Insert a symbol; raise DuplicateSymbolError if it already exists anywhere."""
+    if self._lookup_symbol(symbol) is not None:
+        raise DuplicateSymbolError(
+            f"Duplicate symbol definition for '{symbol}'", program_counter, line_no)
+    self._symtabs[block][symbol] = value
+</code></pre>
+<ol>
+<li><strong>Check for duplicates</strong> across ALL blocks — a symbol can only be defined once in the entire program.</li>
+<li>If not a duplicate, <strong>add it</strong> to the symbol table of the specified block.</li>
+</ol>
+
+<blockquote>
+<p>[!WARNING]
+Duplicate symbols are an assembler error. If your source has <code>ALPHA WORD 5</code> defined twice anywhere in the program, this raises <code>DuplicateSymbolError</code>.</p>
+</blockquote>
+
+<hr>
+
+<h2>2.6 Expression Evaluation</h2>
+<p>These methods handle operands that can be numbers, symbols, or simple expressions like <code>ALPHA+3</code>.</p>
+
+<h3><code>_try_parse_int(token)</code></h3>
+<pre><code class="language-python">def _try_parse_int(self, token: str) -> Optional[int]:
+    """Try to parse a string as an integer. Return None on failure."""
+    try:
+        return int(token.strip(), 0)   # base 0 = auto-detect: 0x=hex, 0o=octal, 0b=binary
+    except (ValueError, TypeError):
+        return None
+</code></pre>
+<p><code>int(x, 0)</code> is clever — it auto-detects the base from prefixes like <code>0x1A</code> (hex), <code>0o17</code> (octal), <code>0b1010</code> (binary), or plain decimal.</p>
+
+<h3><code>_resolve_term(term, current_loc, line_no)</code></h3>
+<pre><code class="language-python">def _resolve_term(self, term: str, current_loc: int, line_no: int) -> int:
+    """Resolve ONE operand token to a numeric value."""
+    clean = term.strip().lstrip("#@")   # strip addressing-mode prefixes (# = immediate, @ = indirect)
+    if clean.endswith(",X"):
+        clean = clean[:-2]              # strip indexed-addressing suffix
+    if clean == "*":
+        return current_loc              # * means "current location counter"
+
+    num = self._try_parse_int(clean)
+    if num is not None:
+        return num
+
+    entry = self._lookup_symbol(clean)
+    if entry is not None:
+        return entry[1]                 # return just the address part
+
+    raise InvalidDirectiveOperandError(
+        f"Unable to resolve operand term '{term}'", current_loc, line_no)
+</code></pre>
+<p>Resolves a <strong>single term</strong> to a numeric value:</p>
+<ol>
+<li>Strip SIC/XE addressing prefixes: <code>#</code> (immediate), <code>@</code> (indirect)</li>
+<li>Strip <code>,X</code> (indexed addressing)</li>
+<li><code>*</code> → current location counter value</li>
+<li>Try parsing as a number</li>
+<li>Try looking up as a symbol in SYMTAB</li>
+<li>If all fail → error</li>
+</ol>
+
+<h3><code>_evaluate_expression(expr, current_loc, line_no)</code></h3>
+<pre><code class="language-python">def _evaluate_expression(self, expr: str, current_loc: int, line_no: int) -> int:
+    """Evaluate a simple expression like 'BUFEND-BUFFER' or 'LEN+3'."""
+    s = expr.replace(" ", "")
+    if not s:
+        raise InvalidDirectiveOperandError("Empty directive operand", current_loc, line_no)
+
+    # find the first '+' or '-' that is NOT at position 0 (position 0 could be a sign)
+    for i in range(1, len(s)):
+        if s[i] in "+-":
+            left  = self._resolve_term(s[:i],    current_loc, line_no)
+            right = self._resolve_term(s[i + 1:], current_loc, line_no)
+            return left + right if s[i] == "+" else left - right
+
+    # no operator found — the whole thing is a single term
+    return self._resolve_term(s, current_loc, line_no)
+</code></pre>
+<p>Handles simple <strong>two-term expressions</strong> like <code>ALPHA+3</code> or <code>BETA-1</code>.</p>
+
+<blockquote>
+<p>[!NOTE]
+This only supports <strong>one operator</strong> (no chained expressions like <code>A+B+C</code>). This is sufficient for SIC/XE.</p>
+</blockquote>
+
+<h3><code>_require_non_negative(operand, current_loc, line_no, directive)</code></h3>
+<pre><code class="language-python">def _require_non_negative(self, operand: Optional[str], current_loc: int,
+                          line_no: int, directive: str) -> int:
+    """Parse an operand that must be present and non-negative."""
+    if operand is None:
+        raise InvalidDirectiveOperandError(
+            f"Directive '{directive}' requires an operand", current_loc, line_no)
+    value = self._evaluate_expression(operand, current_loc, line_no)
+    if value < 0:
+        raise InvalidDirectiveOperandError(
+            f"Directive '{directive}' requires a non-negative operand", current_loc, line_no)
+    return value
+</code></pre>
+<p>Used by <code>RESW</code> and <code>RESB</code> — they need a positive integer to know how much space to reserve.</p>
+
+<hr>
+
+<h2>2.7 BYTE / Literal Size Calculation <span class="badge badge-green">Simplified — shared helper</span></h2>
+
+<h3><code>_data_constant_size(operand, pc, line_no, default_num_size, error_label)</code></h3>
+<pre><code class="language-python">def _data_constant_size(self, operand: str, pc: int, line_no: int,
+                        default_num_size: int = 1,
+                        error_label: str = "BYTE") -> int:
+    """Compute the byte-size of a C'…', X'…', or numeric constant.
+       default_num_size is 1 for BYTE operands, 3 for literals.
+    """
+    clean = operand.strip()
+    if len(clean) >= 3 and clean[1] == "'" and clean.endswith("'"):
+        kind, payload = clean[0].upper(), clean[2:-1]
+        if kind == "C":
+            return len(payload)            # C'EOF' = 3 bytes
+        if kind == "X":
+            if len(payload) % 2 != 0:
+                raise InvalidDirectiveOperandError(
+                    f"Hex {error_label} operand must contain an even number of digits", pc, line_no)
+            return len(payload) // 2       # X'0F1A' = 2 bytes
+    if self._try_parse_int(clean) is not None:
+        return default_num_size            # plain number: 1 byte for BYTE, 3 for literals
+    raise InvalidDirectiveOperandError(f"Unsupported {error_label} operand '{operand}'", pc, line_no)
+</code></pre>
+<p>This single helper is shared by both BYTE and literal size calculation — the old code duplicated this logic twice.</p>
+
+<h3><code>_byte_operand_size</code> and <code>_literal_size</code></h3>
+<pre><code class="language-python">def _byte_operand_size(self, operand: Optional[str], pc: int, line_no: int) -> int:
+    if operand is None:
+        raise InvalidDirectiveOperandError("Directive 'BYTE' requires an operand", pc, line_no)
+    return self._data_constant_size(operand, pc, line_no, default_num_size=1, error_label="BYTE")
+
+def _literal_size(self, literal: str, pc: int, line_no: int) -> int:
+    token = literal.lstrip("&").strip()   # strip the & prefix
+    return self._data_constant_size(token, pc, line_no, default_num_size=3, error_label="literal")
+</code></pre>
+
+<table>
+<thead><tr><th>Constant</th><th>C'…'</th><th>X'…'</th><th>Plain number</th></tr></thead>
+<tbody>
+<tr><td><strong>BYTE</strong></td><td>len of string</td><td>hex digits / 2</td><td>1 byte</td></tr>
+<tr><td><strong>Literal</strong> (<code>&amp;</code>)</td><td>len of string</td><td>hex digits / 2</td><td>3 bytes (stored as WORD)</td></tr>
+</tbody>
+</table>
+
+<blockquote>
+<p>[!NOTE]
+In standard SIC/XE textbooks, literals use <code>=</code> prefix (e.g., <code>=C'EOF'</code>). This project uses <code>&amp;</code> instead.</p>
+</blockquote>
+
+<hr>
+
+<h2>2.8 Literal Pool Management</h2>
+
+<h3><code>_collect_literals(operand, block)</code></h3>
+<pre><code class="language-python">def _collect_literals(self, operand: Optional[str], block: MemoryBlock) -> None:
+    """Scan the operand for '&'-prefixed literals and queue them for the pool."""
+    if operand is None:
+        return
+    for raw in operand.split(","):
+        token = raw.strip()
+        if not token.startswith("&"):
+            continue
+        if self._pool_anchor_block is None:
+            self._pool_anchor_block = block   # remember which block triggered first literal
+        if token not in self._symtabs[MemoryBlock.POOL] and token not in self._pending_literals_set:
+            self._pending_literals.append(token)
+            self._pending_literals_set.add(token)
+</code></pre>
+<p>Called for every instruction. Scans the operand for <strong>literal references</strong> (tokens starting with <code>&amp;</code>):</p>
+<ul>
+<li>Splits by comma to handle indexed addressing like <code>&amp;X'0F',X</code></li>
+<li>Records the <strong>first block</strong> that uses a literal (<code>_pool_anchor_block</code>) — Pass Two needs this to know where to place the literal pool</li>
+<li>Adds new literals to the pending list (avoiding duplicates)</li>
+</ul>
+
+<h3><code>_flush_literal_pool(line_no)</code></h3>
+<pre><code class="language-python">def _flush_literal_pool(self, line_no: int) -> None:
+    """Assign addresses to all pending literals and clear the queue."""
+    pool_loc = self._locs[MemoryBlock.POOL]
+    for lit in self._pending_literals:
+        self._symtabs[MemoryBlock.POOL][lit] = pool_loc
+        pool_loc += self._literal_size(lit, pool_loc, line_no)
+    self._locs[MemoryBlock.POOL] = pool_loc
+    self._pending_literals.clear()
+    self._pending_literals_set.clear()
+</code></pre>
+<p><strong>Assigns addresses</strong> to all pending literals:</p>
+<ol>
+<li>For each literal, record its address in the pool symtab</li>
+<li>Advance <code>pool_loc</code> by the literal's size</li>
+<li>Save the final value back to <code>self._locs[MemoryBlock.POOL]</code></li>
+<li>Clear the pending lists</li>
+</ol>
+<p>This is called when <code>END</code> is encountered (or at the very end of the program).</p>
+
+<hr>
+
+<h2>2.9 USE Block Resolution</h2>
+<pre><code class="language-python">def _resolve_use_block(self, operand: Optional[str], pc: int, line_no: int) -> MemoryBlock:
+    """Return the MemoryBlock for a USE directive. Defaults to DEFAULT if no operand."""
+    if operand is None:
+        return MemoryBlock.DEFAULT
+    block = USE_BLOCK_MAP.get(operand.upper())
+    if block is None:
+        raise UnidentifiedBlockNameError(
+            f"Unidentified Block Name: '{operand}'. Expected one of {', '.join(USE_BLOCK_MAP)}.",
+            pc, line_no)
+    return block
+</code></pre>
+<p><strong>What it does:</strong> When the assembler encounters <code>USE CDATA</code>, this method converts the string <code>"CDATA"</code> to <code>MemoryBlock.CDATA</code>.</p>
+<ul>
+<li>If <code>USE</code> has <strong>no operand</strong> (just <code>USE</code> by itself), defaults back to <code>MemoryBlock.DEFAULT</code>.</li>
+<li>If the operand is invalid (e.g., <code>USE FOOBAR</code>), throws an error listing valid block names.</li>
+</ul>
+
+<hr>
+
+<h2>2.10 Parsing a Source Line into an Instruction Object</h2>
+<pre><code class="language-python">def _parse_instruction(self, line: ParsedLine, current_loc: int = 0) -> AssemblyInstruction:
+    """Turn a ParsedLine (1–3 fields) into the right AssemblyInstruction subclass."""
+    label = operand = None
+
+    if line.number_of_parts == 1:
+        mnemonic = line.first                          # e.g., "RSUB"
+
+    elif line.number_of_parts == 2:
+        if is_supported(line.first):
+            mnemonic, operand = line.first, line.second  # e.g., LDA #0
+        elif is_supported(line.second):
+            label, mnemonic = line.first, line.second    # e.g., FIRST RSUB
+        else:
+            raise InvalidMnemonicOrDirective(...)
+
+    else:  # 3 parts — unambiguous
+        label, mnemonic, operand = line.first, line.second, line.third  # e.g., ALPHA WORD 5
+</code></pre>
+
+<p><strong>The 2-token disambiguation step is critical:</strong></p>
+<ul>
+<li><code>LDA ALPHA</code> → first token (<code>LDA</code>) is a known mnemonic → <code>mnemonic operand</code></li>
+<li><code>FIRST RSUB</code> → second token (<code>RSUB</code>) is a known mnemonic → <code>label mnemonic</code></li>
+</ul>
+
+<h3>Building the Typed Instruction Object</h3>
+<pre><code class="language-python">    # Directives → DirectiveInstruction (size = 0)
+    if is_directive(mnemonic):
+        return DirectiveInstruction(parsed_line=line, size=0,
+                                    label=label, directive=mnemonic, operand=operand)
+
+    # Machine instructions → look up format, return the right class
+    info = lookup_opcode(mnemonic)
+    if info is not None:
+        if is_format4(mnemonic):                          # starts with "+"
+            return Format4Instruction(parsed_line=line, size=4,
+                                      label=label, mnemonic=mnemonic, operand=operand)
+
+        # Map format enum → (class, size, has_operand)
+        fmt_map = {
+            InstructionFormat.FORMAT_1: (Format1Instruction, 1, False),
+            InstructionFormat.FORMAT_2: (Format2Instruction, 2, True),
+            InstructionFormat.FORMAT_3: (Format3Instruction, 3, True),
+        }
+        cls, size, has_op = fmt_map[info.fmt]
+        kwargs = dict(parsed_line=line, size=size, label=label, mnemonic=mnemonic)
+        if has_op:
+            kwargs["operand"] = operand
+        return cls(**kwargs)
+</code></pre>
+
+<p>Decision tree:</p>
+<ol>
+<li>Is it a directive? → <code>DirectiveInstruction</code> (size = 0)</li>
+<li>Does it start with <code>+</code>? → <code>Format4Instruction</code> (size = 4)</li>
+<li>Look up in <code>fmt_map</code> → <code>Format1</code> (1 byte), <code>Format2</code> (2 bytes), or <code>Format3</code> (3 bytes)</li>
+</ol>
+
+<blockquote>
+<p>[!TIP]
+The <code>fmt_map</code> dictionary replaces 3 separate <code>if opcode_info.fmt ==</code> blocks from the old code. Instead of repeating the same pattern three times, one dict lookup does the job.</p>
+</blockquote>
+
+<hr>
+
+<h2>2.11 Handle the START Directive</h2>
+<pre><code class="language-python">def _handle_start(self, instr: DirectiveInstruction, line_no: int) -> None:
+    """Process START: set program name, starting address, and symbol."""
+    self.start_address = int(instr.operand) if instr.operand else 0
+    self.program_name  = instr.label or ""
+    self._locs[MemoryBlock.DEFAULT] = self.start_address
+    instr.block            = MemoryBlock.DEFAULT
+    instr.location_counter = self.start_address
+    if instr.label:
+        self._add_symbol(instr.label, MemoryBlock.DEFAULT,
+                         self.start_address, self.start_address, line_no)
+</code></pre>
+<p>For <code>COPY START 0</code>:</p>
+<ol>
+<li>Sets starting address to <code>0</code></li>
+<li>Saves program name as <code>"COPY"</code></li>
+<li>Sets DEFAULT block's location counter to <code>0</code></li>
+<li>Adds <code>COPY</code> to the DEFAULT symbol table at address <code>0</code></li>
+</ol>
+
+<hr>
+
+<h2>2.12 Process One Directive (after START) <span class="badge badge-green">Simplified</span></h2>
+<pre><code class="language-python">def _process_directive(self, instr: DirectiveInstruction, block: MemoryBlock,
+                       loc: int, line_no: int, current_block: MemoryBlock) -> MemoryBlock:
+    """Handle a directive, update location counter, return the (possibly changed) active block."""
+    d = instr.directive.upper()
+
+    if instr.label:
+        self._add_symbol(instr.label, block, loc, loc, line_no)
+
+    self._collect_literals(instr.operand, block)
+
+    if   d == "USE":   return self._resolve_use_block(instr.operand, loc, line_no)
+    elif d == "WORD":  self._locs[block] = loc + 3
+    elif d == "RESW":  self._locs[block] = loc + 3 * self._require_non_negative(instr.operand, loc, line_no, "RESW")
+    elif d == "RESB":  self._locs[block] = loc +     self._require_non_negative(instr.operand, loc, line_no, "RESB")
+    elif d == "BYTE":  self._locs[block] = loc + self._byte_operand_size(instr.operand, loc, line_no)
+    elif d == "END":   self._flush_literal_pool(line_no)
+
+    return current_block
+</code></pre>
+
+<table>
+<thead><tr><th>Directive</th><th>Action</th><th>LC Advance</th></tr></thead>
+<tbody>
+<tr><td><code>USE</code></td><td>Switch active block</td><td>0 (just switches)</td></tr>
+<tr><td><code>WORD</code></td><td>Reserve 1 word</td><td>+3 bytes</td></tr>
+<tr><td><code>RESW n</code></td><td>Reserve n words</td><td>+3n bytes</td></tr>
+<tr><td><code>RESB n</code></td><td>Reserve n bytes</td><td>+n bytes</td></tr>
+<tr><td><code>BYTE</code></td><td>Store constant</td><td>+size of constant</td></tr>
+<tr><td><code>END</code></td><td>End of program</td><td>0 (but flushes literal pool)</td></tr>
+<tr><td><code>BASE</code>, <code>NOBASE</code>, <code>EXTDEF</code>…</td><td>No LC change</td><td>0</td></tr>
+</tbody>
+</table>
+
+<hr>
+
+<h2>2.13 Process One Machine Instruction</h2>
+<pre><code class="language-python">def _process_machine(self, instr: AssemblyInstruction, block: MemoryBlock,
+                     loc: int, line_no: int) -> None:
+    label   = getattr(instr, "label",   None)
+    operand = getattr(instr, "operand", None)
+    if label:
+        self._add_symbol(label, block, loc, loc, line_no)
+    self._collect_literals(operand, block)
+    self._locs[block] = loc + instr.size
+</code></pre>
+<p>For machine instructions (<code>LDA</code>, <code>STA</code>, <code>CLEAR</code>, <code>+LDX</code>, etc.):</p>
+<ol>
+<li>If it has a label → add to SYMTAB</li>
+<li>If its operand references a literal → collect it</li>
+<li>Advance the location counter by <code>instr.size</code> (1, 2, 3, or 4 bytes)</li>
+</ol>
+<p><code>getattr(instr, "label", None)</code> is used because the base class <code>AssemblyInstruction</code> doesn't always have <code>label</code> or <code>operand</code> fields — <code>getattr</code> safely returns <code>None</code> if the attribute doesn't exist.</p>
+
+<hr>
+
+<h2>2.14 The Main Loop — <code>process_pass_one()</code></h2>
+<pre><code class="language-python">def process_pass_one(self, parsed_lines: list[ParsedLine]) -> None:
+    """Run pass 1 over all parsed source lines."""
+    current_block = MemoryBlock.DEFAULT         # start in DEFAULT block
+
+    for line in parsed_lines:
+        loc   = self._locs[current_block]       # get LC for the active block
+        instr = self._parse_instruction(line, loc)
+
+        # ── Special case: START ──
+        if isinstance(instr, DirectiveInstruction) and instr.directive.upper() == "START":
+            self._handle_start(instr, line.line_no)
+            self.instructions.append(instr)
+            continue
+
+        # ── Stamp instruction with its block and address ──
+        instr.block            = current_block
+        instr.location_counter = loc
+
+        # ── Dispatch to directive vs. machine processing ──
+        if isinstance(instr, DirectiveInstruction):
+            current_block = self._process_directive(
+                instr, current_block, loc, line.line_no, current_block)
+        else:
+            self._process_machine(instr, current_block, loc, line.line_no)
+
+        self.instructions.append(instr)
+
+    # Flush any remaining literals (safety net if there was no END directive)
+    if self._pending_literals:
+        self._flush_literal_pool(parsed_lines[-1].line_no if parsed_lines else 0)
+</code></pre>
+
+<p><strong>Step by step for each line:</strong></p>
+<ol>
+<li>Read the current location counter for the active block</li>
+<li>Parse the line into a typed instruction object</li>
+<li>If it's <code>START</code>, handle it specially and move on</li>
+<li>Otherwise, stamp the instruction with its block + address</li>
+<li>If directive → process directive (may switch blocks, advance LC)</li>
+<li>If machine instruction → add label to SYMTAB, advance LC by instruction size</li>
+<li>Append to the instruction list</li>
+</ol>
+
+<hr>
+
+<h2>2.15 Export Methods</h2>
+
+<h3><code>export_symbol_table(output_path)</code></h3>
+<pre><code class="language-python">def export_symbol_table(self, output_path: str) -> None:
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(f"{'Symbol':<12}{'Block':<10}{'LC (HEX)':<10}{'LC (DEC)'}\n")
+        f.write("-" * 42 + "\n")
+        for block in USER_BLOCKS:
+            for sym, loc in self._symtabs[block].items():
+                f.write(f"{sym:<12}{block.value:<10}{loc:04X}{loc:>10}\n")
+</code></pre>
+<p>Output looks like:</p>
+<pre><code>Symbol      Block     LC (HEX)  LC (DEC)
+------------------------------------------
+COPY        DEFAULT   0000         0
+FIRST       DEFAULT   0000         0
+ALPHA       CDATA     0000         0
+</code></pre>
+
+<h3><code>export_pool_table(output_path)</code></h3>
+<pre><code class="language-python">def export_pool_table(self, output_path: str) -> None:
+    if self._pending_literals:
+        self._flush_literal_pool(0)
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(f"{'Literal':<12}{'LC (HEX)':<10}{'LC (DEC)'}\n")
+        f.write("-" * 34 + "\n")
+        for lit, loc in self._symtabs[MemoryBlock.POOL].items():
+            f.write(f"{lit:<12}{loc:04X}{loc:>10}\n")
+</code></pre>
+<p>Output looks like:</p>
+<pre><code>Literal     LC (HEX)  LC (DEC)
+----------------------------------
+&amp;C'EOF'     0000         0
+&amp;X'0F'      0003         3
+</code></pre>
+
+<h3><code>export_intermediate_table(output_path)</code></h3>
+<p>Writes the intermediate file — all instructions with their assigned addresses:</p>
+<pre><code>Location counter  Symbol   Instructions  Reference
+----------------  -------  ------------  ----------
+0000              COPY     START         0
+0000              FIRST    CLEAR         X
+...
+</code></pre>
+
+<h3>Properties (used by Pass Two and the Assembler class)</h3>
+<pre><code class="language-python">@property
+def block_locs(self) -> dict[MemoryBlock, int]:
+    return dict(self._locs)           # shallow copy — pass two gets all final block sizes
+
+@property
+def symbol_tables(self) -> dict[MemoryBlock, dict[str, int]]:
+    return {b: dict(st) for b, st in self._symtabs.items()}  # copy of all symtabs
+
+@property
+def pool_anchor_block(self) -> Optional[MemoryBlock]:
+    return self._pool_anchor_block    # which block the literal pool is anchored to
+</code></pre>
+<ul>
+<li><strong><code>block_locs</code></strong> — used by Pass Two to calculate absolute addresses by stacking blocks</li>
+<li><strong><code>symbol_tables</code></strong> — used by Pass Two to resolve all symbol references</li>
+<li><strong><code>pool_anchor_block</code></strong> — tells Pass Two where to physically place the literal pool</li>
+</ul>
+
+<hr>
+
+<h2>Walkthrough: Processing <code>in.txt</code></h2>
+<p>Let's trace through the <a href="file:///d:/1%29%20colloge/3%29%20TERM%206/SYSTEM%20PRO/System%20Programming/project/SYSTEMS%20PROJECT%20HESAHM/in.txt">sample input</a>:</p>
+
+<table>
+<thead><tr><th>Source Line</th><th>Type</th><th>Block</th><th>LC (start)</th><th>Action / LC after</th></tr></thead>
+<tbody>
+<tr><td><code>COPY START 0</code></td><td>START directive</td><td>DEFAULT</td><td>0000</td><td>Set start=0, add COPY→0 to SYMTAB. LC stays 0000</td></tr>
+<tr><td><code>FIRST CLEAR X</code></td><td>Format 2 (2 bytes)</td><td>DEFAULT</td><td>0000</td><td>Add FIRST→0 to SYMTAB. LC→0002</td></tr>
+<tr><td><code>CLEAR A</code></td><td>Format 2 (2 bytes)</td><td>DEFAULT</td><td>0002</td><td>LC→0004</td></tr>
+<tr><td><code>USE DEFAULTB</code></td><td>Directive</td><td>—</td><td>—</td><td>Switch active block to DEFAULTB</td></tr>
+<tr><td><code>LDA #0</code></td><td>Format 3 (3 bytes)</td><td>DEFAULTB</td><td>0000</td><td>LC→0003</td></tr>
+<tr><td><code>LDB #BASEVAL</code></td><td>Format 3 (3 bytes)</td><td>DEFAULTB</td><td>0003</td><td>LC→0006</td></tr>
+<tr><td><code>BASE BASEVAL</code></td><td>Directive</td><td>DEFAULTB</td><td>0006</td><td>No LC change (BASE has no size)</td></tr>
+<tr><td><code>LDA ALPHA</code></td><td>Format 3 (3 bytes)</td><td>DEFAULTB</td><td>0006</td><td>LC→0009</td></tr>
+<tr><td><code>ADD &amp;C'EOF'</code></td><td>Format 3 (3 bytes)</td><td>DEFAULTB</td><td>0009</td><td>Collect literal <code>&amp;C'EOF'</code>. LC→000C</td></tr>
+<tr><td><code>STA BETA</code></td><td>Format 3 (3 bytes)</td><td>DEFAULTB</td><td>000C</td><td>LC→000F</td></tr>
+<tr><td><code>LDA @GAMMA</code></td><td>Format 3 (3 bytes)</td><td>DEFAULTB</td><td>000F</td><td>LC→0012</td></tr>
+<tr><td><code>+LDX ALPHA</code></td><td>Format 4 (4 bytes)</td><td>DEFAULTB</td><td>0012</td><td>LC→0016</td></tr>
+<tr><td><code>ADD &amp;X'0F'</code></td><td>Format 3 (3 bytes)</td><td>DEFAULTB</td><td>0016</td><td>Collect literal <code>&amp;X'0F'</code>. LC→0019</td></tr>
+<tr><td><code>STCH GAMMA,X</code></td><td>Format 3 (3 bytes)</td><td>DEFAULTB</td><td>0019</td><td>LC→001C</td></tr>
+<tr><td><code>RSUB</code></td><td>Format 3 (3 bytes)</td><td>DEFAULTB</td><td>001C</td><td>LC→001F</td></tr>
+<tr><td><code>USE CDATA</code></td><td>Directive</td><td>—</td><td>—</td><td>Switch to CDATA block</td></tr>
+<tr><td><code>ALPHA WORD 5</code></td><td>Directive (3 bytes)</td><td>CDATA</td><td>0000</td><td>Add ALPHA→0 to CDATA SYMTAB. LC→0003</td></tr>
+<tr><td><code>BETA RESW 1</code></td><td>Directive (3 bytes)</td><td>CDATA</td><td>0003</td><td>Add BETA→3 to CDATA SYMTAB. LC→0006</td></tr>
+<tr><td><code>BASEVAL WORD 4096</code></td><td>Directive (3 bytes)</td><td>CDATA</td><td>0006</td><td>Add BASEVAL→6 to CDATA SYMTAB. LC→0009</td></tr>
+<tr><td><code>USE CBLKS</code></td><td>Directive</td><td>—</td><td>—</td><td>Switch to CBLKS block</td></tr>
+<tr><td><code>GAMMA RESB 5376</code></td><td>Directive (5376 bytes)</td><td>CBLKS</td><td>0000</td><td>Add GAMMA→0 to CBLKS SYMTAB. LC→1500</td></tr>
+<tr><td><code>END FIRST</code></td><td>Directive</td><td>CBLKS</td><td>1500</td><td>Flush literal pool. LC unchanged.</td></tr>
+</tbody>
+</table>
+
+<p><strong>Literal Pool after flush:</strong></p>
+
+<table>
+<thead><tr><th>Literal</th><th>Address in POOL</th><th>Size</th></tr></thead>
+<tbody>
+<tr><td><code>&amp;C'EOF'</code></td><td>0000</td><td>3 bytes (E, O, F)</td></tr>
+<tr><td><code>&amp;X'0F'</code></td><td>0003</td><td>1 byte</td></tr>
+</tbody>
+</table>
+
+<hr>
+
+<h2>Potential TA Discussion Questions</h2>
+
+<h3>Q1: Why is a two-pass assembler needed? Can't we do it in one pass?</h3>
+<p><strong>A:</strong> Forward references. For example, <code>LDB #BASEVAL</code> is on line 6 but <code>BASEVAL</code> is defined on line 19. Pass One collects all labels and their addresses into SYMTAB first; Pass Two uses that table to resolve every reference. A one-pass assembler would need to backpatch, which is more complex.</p>
+
+<h3>Q2: What is the purpose of program blocks (USE directive)?</h3>
+<p><strong>A:</strong> They allow logically separating code, data, and reserved storage while keeping them in one source file. Each block maintains its own location counter starting from 0. Pass Two calculates absolute addresses by deciding the final order of blocks and adding each block's base offset.</p>
+
+<h3>Q3: How does the preprocessor handle comments?</h3>
+<p><strong>A:</strong> Two types: (1) full-line comments starting with <code>.</code> are skipped entirely with <code>continue</code>, (2) inline comments (<code> .</code> pattern) are stripped from the end of the line before tokenization.</p>
+
+<h3>Q4: What's the difference between literals and immediate operands?</h3>
+<p><strong>A:</strong> Immediate (<code>#5</code>) embeds the value directly in the instruction encoding. Literals (<code>&amp;C'EOF'</code>) allocate memory in the literal pool to store the value, and the instruction references that memory address.</p>
+
+<h3>Q5: How does <code>_parse_instruction</code> disambiguate 2-token lines?</h3>
+<p><strong>A:</strong> It checks if the first token is a valid mnemonic/directive using <code>is_supported()</code>. If yes → <code>mnemonic operand</code>. If not, checks if the second token is valid → <code>label mnemonic</code>. If neither is valid → raises <code>InvalidMnemonicOrDirective</code>.</p>
+
+<h3>Q6: Why separate symbol tables per block?</h3>
+<p><strong>A:</strong> Each block has its own address space starting from 0. A symbol's address is relative to its block. Pass Two calculates the absolute address by adding the block's starting offset (which is determined by the order the blocks are laid out in memory).</p>
+
+<h3>Q7: What happens if a symbol is defined twice?</h3>
+<p><strong>A:</strong> <code>_add_symbol</code> first calls <code>_lookup_symbol</code> which searches ALL blocks. If the symbol is found anywhere — even in a different block — it raises <code>DuplicateSymbolError</code>. Labels must be globally unique across the entire program.</p>
+
+<h3>Q8: When is the literal pool flushed?</h3>
+<p><strong>A:</strong> Primarily when <code>END</code> is encountered inside <code>_process_directive</code>. There is also a safety net at the end of <code>process_pass_one()</code> — if there are still unflushed literals after the loop (e.g., no <code>END</code> directive), they get flushed then.</p>
+
+<h3>Q9: What was the biggest simplification in the rewrite?</h3>
+<p><strong>A:</strong> Replacing 5 separate location-counter variables + 5 separate symbol-table dicts + 3 giant <code>match/case</code> helper methods with two dictionaries: <code>self._locs[block]</code> and <code>self._symtabs[block]</code>. This eliminated ~200 lines of repetitive code while doing exactly the same thing.</p>
+
+<h3>Q10: What does <code>getattr(instr, "label", None)</code> do?</h3>
+<p><strong>A:</strong> It safely reads the <code>label</code> attribute from an instruction, returning <code>None</code> if the attribute doesn't exist. This is needed because the base class <code>AssemblyInstruction</code> doesn't declare <code>label</code> or <code>operand</code> — only the subclasses do. Using <code>getattr</code> avoids an <code>AttributeError</code>.</p>
+
+</div>
+
+<script>
+    // Initialize Highlight.js
+    hljs.highlightAll();
+
+    // Process custom GitHub alerts
+    document.querySelectorAll('blockquote').forEach(bq => {
+        const firstP = bq.querySelector('p');
+        if (firstP) {
+            const match = firstP.innerHTML.match(/^\[!(TIP|NOTE|IMPORTANT|WARNING|CAUTION)\]/i);
+            if (match) {
+                const type = match[1].toUpperCase();
+                bq.classList.add('alert', `alert-${type.toLowerCase()}`);
+                firstP.innerHTML = firstP.innerHTML.replace(/^\[!(TIP|NOTE|IMPORTANT|WARNING|CAUTION)\]\s*/i, '');
+                const title = document.createElement('div');
+                title.className = 'alert-title';
+                let icon = '📝';
+                if (type === 'TIP')       icon = '💡';
+                else if (type === 'IMPORTANT') icon = '📌';
+                else if (type === 'WARNING')   icon = '⚠️';
+                else if (type === 'CAUTION')   icon = '🛑';
+                title.innerHTML = `${icon} ${type}`;
+                bq.insertBefore(title, firstP);
+            }
+        }
+    });
+
+    // Convert raw mermaid code blocks to div.mermaid
+    document.querySelectorAll('pre code.language-mermaid').forEach(codeBlock => {
+        const pre = codeBlock.parentNode;
+        const div = document.createElement('div');
+        div.className = 'mermaid';
+        div.textContent = codeBlock.textContent;
+        pre.parentNode.replaceChild(div, pre);
+    });
+
+    // Initialize Mermaid
+    mermaid.initialize({
+        startOnLoad: true,
+        theme: 'default',
+        securityLevel: 'loose',
+        flowchart: { useMaxWidth: true, htmlLabels: true }
+    });
+</script>
+</body>
+</html>
